@@ -1,0 +1,8 @@
+Libraries of Interes:
+
+Pandas
+NumPy
+statistics
+math
+typing
+jsonpickle
