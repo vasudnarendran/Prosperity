@@ -1,0 +1,13 @@
+Backtest summary
+================
+Steps: 20000
+Product rows: 40000
+Total fills: 0
+Final total PnL: 0.00
+Best total PnL: 0.00
+Worst total PnL: 0.00
+Steps with strategy errors: 0
+
+Status counts by product:
+- EMERALDS NO_FILL: 20000
+- TOMATOES NO_FILL: 20000

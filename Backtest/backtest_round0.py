@@ -34,8 +34,8 @@ OUTPUT_DIR = SCRIPT_DIR / "backtest_output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 POSITION_LIMITS = {
-    "EMERALDS": 20,
-    "TOMATOES": 20,
+    "EMERALDS": 80,
+    "TOMATOES": 80,
 }
 
 
