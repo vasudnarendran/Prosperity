@@ -9,8 +9,8 @@ Usless
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 590 
-Bot: Trader v3
+Record Total PnL: 1'173
+Bot: Trader v6
 
 Failed_Bot_Count: 5
 
@@ -60,5 +60,17 @@ PnL: 540
 V6:
 Works: Yes
 Improvement: Broader market-making version with inventory skew, quote edges, and product-specific fair value logic.
-Notes: Saved as a separate branch so those ideas are kept while V3.2 stays focused on simpler buy/sell tuning.
+Notes: Strongest version so far and the current main branch to keep developing from.
 PnL: 1'173
+
+V6.1:
+Works: Yes
+Improvement: Keeps the V6 logic but tests small EMERALDS fair-value weight changes around the reference price.
+Notes: Both small blend changes stayed close to V6 but did not beat it. The effect shows up almost entirely in EMERALDS while TOMATOES stays unchanged, so this does not look like the highest-value tuning path right now.
+PnL: 1'169
+
+V6.2:
+Works: Not tested yet
+Improvement: Returns to the original V6 fair value, then explores execution improvements with spread-adaptive quote edges, inventory-aware aggressiveness, softer same-side quoting near inventory limits, and less quote stacking after taking liquidity.
+Notes: Built as the next discovery branch after the fair-value blend tests looked too small to matter.
+PnL:
