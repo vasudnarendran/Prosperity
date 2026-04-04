@@ -32,8 +32,7 @@ $RECYCLE.BIN/
 # =========================
 # LOGS
 # =========================
-
-
+# Keep logs tracked
 
 # =========================
 # DEPENDENCIES
@@ -92,7 +91,6 @@ Temp/
 Obj/
 Build/
 Builds/
-Logs/
 UserSettings/
 
 # =========================
