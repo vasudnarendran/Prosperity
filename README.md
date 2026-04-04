@@ -94,7 +94,13 @@ Notes: Bad attempt. EMERALDS was identical to V6.2, but the TOMATOES filter supp
 PnL: 1'559
 
 V6.5:
-Works: Not tested yet
+Works: Yes
 Improvement: Starts from V6.2 and adds a TOMATOES-only dynamic fair value using current mid, microprice, and short traderData mid-history, without hard quote suppression or regime blocking.
-Notes: Built as a cleaner next step after V6.4, keeping the strong V6.2 execution while only improving the TOMATOES fair-value estimate.
+Notes: Close to V6.2 but still slightly worse. EMERALDS stayed identical, while TOMATOES kept the same trade count but bought a bit worse on average, so the dynamic fair value did not improve execution enough to beat the base version.
+PnL: 1'750
+
+V7:
+Works: Not tested yet
+Improvement: Keeps TOMATOES on the proven V6.2-style logic and introduces a dedicated EMERALDS module with fixed-anchor pricing, stronger state-based reactions around the rare off-anchor book states, and more aggressive reversion-style sizing.
+Notes: Built as the first branch that explicitly targets EMERALDS improvement instead of continuing to tune TOMATOES.
 PnL:
