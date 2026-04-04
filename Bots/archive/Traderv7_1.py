@@ -1,0 +1,310 @@
+from datamodel import OrderDepth, Order, TradingState
+from typing import Dict, List, Optional, Tuple
+import math
+
+
+class Trader:
+    POSITION_LIMITS: Dict[str, int] = {
+        "EMERALDS": 80,
+        "TOMATOES": 80,
+    }
+
+    REFERENCE_PRICES: Dict[str, float] = {
+        "EMERALDS": 10000.0,
+    }
+
+    REFERENCE_WEIGHT: Dict[str, float] = {
+        "EMERALDS": 0.8,
+    }
+
+    MID_WEIGHT: Dict[str, float] = {
+        "EMERALDS": 0.2,
+    }
+
+    TAKE_EDGE: Dict[str, float] = {
+        "EMERALDS": 1.0,
+        "TOMATOES": 1.5,
+    }
+
+    QUOTE_EDGE: Dict[str, float] = {
+        "EMERALDS": 2.0,
+        "TOMATOES": 2.0,
+    }
+
+    MAX_QUOTE_EDGE: Dict[str, float] = {
+        "EMERALDS": 4.0,
+        "TOMATOES": 4.0,
+    }
+
+    INVENTORY_SKEW: Dict[str, float] = {
+        "EMERALDS": 0.12,
+        "TOMATOES": 0.10,
+    }
+
+    PASSIVE_SIZE: Dict[str, int] = {
+        "EMERALDS": 7,
+        "TOMATOES": 7,
+    }
+
+    MAX_TAKE_SIZE: Dict[str, int] = {
+        "EMERALDS": 10,
+        "TOMATOES": 8,
+    }
+
+    EMERALDS_RARE_STATE_TAKE_SIZE = 14
+    EMERALDS_RARE_STATE_PASSIVE_BONUS = 2
+    SOFT_LIMIT_RATIO = 0.5
+
+    def get_best_prices(self, order_depth: OrderDepth) -> Tuple[Optional[int], Optional[int]]:
+        best_bid = max(order_depth.buy_orders.keys()) if order_depth.buy_orders else None
+        best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else None
+        return best_bid, best_ask
+
+    def is_emeralds_cheap_ask(self, product: str, best_ask: int) -> bool:
+        return product == "EMERALDS" and best_ask <= 10000
+
+    def is_emeralds_rich_bid(self, product: str, best_bid: int) -> bool:
+        return product == "EMERALDS" and best_bid >= 10000
+
+    def get_fair_value(
+        self,
+        product: str,
+        best_bid: Optional[int],
+        best_ask: Optional[int],
+    ) -> Optional[float]:
+        reference_price = self.REFERENCE_PRICES.get(product)
+
+        if best_bid is not None and best_ask is not None:
+            mid_price = (best_bid + best_ask) / 2
+            if reference_price is None:
+                return mid_price
+
+            reference_weight = self.REFERENCE_WEIGHT.get(product, 0.8)
+            mid_weight = self.MID_WEIGHT.get(product, 0.2)
+            return reference_weight * reference_price + mid_weight * mid_price
+
+        if reference_price is not None:
+            return reference_price
+
+        if best_bid is not None:
+            return float(best_bid)
+
+        if best_ask is not None:
+            return float(best_ask)
+
+        return None
+
+    def get_inventory_adjusted_fair_value(
+        self,
+        product: str,
+        fair_value: float,
+        position: int,
+    ) -> float:
+        skew = self.INVENTORY_SKEW.get(product, 0.0)
+        return fair_value - (position * skew)
+
+    def get_effective_take_edge(
+        self,
+        product: str,
+        side: str,
+        position: int,
+        spread: int,
+    ) -> float:
+        edge = self.TAKE_EDGE.get(product, 1.0)
+
+        if spread >= 14:
+            edge += 0.5
+
+        if side == "BUY":
+            if position <= -20:
+                edge -= 0.5
+            elif position >= 20:
+                edge += 0.5
+        else:
+            if position >= 20:
+                edge -= 0.5
+            elif position <= -20:
+                edge += 0.5
+
+        return max(0.5, edge)
+
+    def get_quote_edge(self, product: str, spread: int) -> float:
+        base_edge = self.QUOTE_EDGE.get(product, 2.0)
+        max_edge = self.MAX_QUOTE_EDGE.get(product, 4.0)
+        return min(max_edge, max(base_edge, spread / 4))
+
+    def should_place_passive_order(
+        self,
+        side: str,
+        position: int,
+        limit: int,
+    ) -> bool:
+        soft_limit = int(limit * self.SOFT_LIMIT_RATIO)
+
+        if side == "BUY" and position >= soft_limit:
+            return False
+
+        if side == "SELL" and position <= -soft_limit:
+            return False
+
+        return True
+
+    def get_passive_quotes(
+        self,
+        product: str,
+        adjusted_fair_value: float,
+        best_bid: int,
+        best_ask: int,
+        position: int,
+        limit: int,
+    ) -> Tuple[Optional[int], Optional[int]]:
+        spread = best_ask - best_bid
+        quote_edge = self.get_quote_edge(product, spread)
+
+        buy_quote = math.floor(adjusted_fair_value - quote_edge)
+        sell_quote = math.ceil(adjusted_fair_value + quote_edge)
+
+        buy_quote = max(buy_quote, best_bid + 1)
+        sell_quote = min(sell_quote, best_ask - 1)
+
+        if self.is_emeralds_cheap_ask(product, best_ask):
+            buy_quote = min(best_ask - 1, buy_quote + 1)
+        elif self.is_emeralds_rich_bid(product, best_bid):
+            sell_quote = max(best_bid + 1, sell_quote - 1)
+
+        soft_limit = int(limit * self.SOFT_LIMIT_RATIO)
+        if position >= soft_limit:
+            sell_quote = max(best_bid + 1, sell_quote - 1)
+        elif position <= -soft_limit:
+            buy_quote = min(best_ask - 1, buy_quote + 1)
+
+        final_buy_quote = buy_quote if buy_quote < best_ask else None
+        final_sell_quote = sell_quote if sell_quote > best_bid else None
+        return final_buy_quote, final_sell_quote
+
+    def get_passive_size(
+        self,
+        product: str,
+        position: int,
+        side: str,
+        spread: int,
+    ) -> int:
+        base_size = self.PASSIVE_SIZE.get(product, 5)
+
+        if spread >= 14:
+            base_size += 1
+
+        if side == "BUY":
+            if position <= -20:
+                base_size += 1
+            elif position >= 20:
+                base_size = max(1, base_size - 2)
+        else:
+            if position >= 20:
+                base_size += 1
+            elif position <= -20:
+                base_size = max(1, base_size - 2)
+
+        return max(1, base_size)
+
+    def run(self, state: TradingState):
+        result = {}
+
+        for product, order_depth in state.order_depths.items():
+            orders: List[Order] = []
+            best_bid, best_ask = self.get_best_prices(order_depth)
+
+            if best_bid is None or best_ask is None:
+                result[product] = orders
+                continue
+
+            position = state.position.get(product, 0)
+            limit = self.POSITION_LIMITS.get(product, 80)
+            buy_capacity = limit - position
+            sell_capacity = limit + position
+            spread = best_ask - best_bid
+
+            fair_value = self.get_fair_value(product, best_bid, best_ask)
+            if fair_value is None:
+                result[product] = orders
+                continue
+
+            adjusted_fair_value = self.get_inventory_adjusted_fair_value(
+                product,
+                fair_value,
+                position,
+            )
+
+            took_buy = False
+            took_sell = False
+
+            emeralds_cheap_ask = self.is_emeralds_cheap_ask(product, best_ask)
+            emeralds_rich_bid = self.is_emeralds_rich_bid(product, best_bid)
+
+            best_ask_amount = -order_depth.sell_orders[best_ask]
+            buy_take_edge = self.get_effective_take_edge(product, "BUY", position, spread)
+            if best_ask <= adjusted_fair_value - buy_take_edge and buy_capacity > 0:
+                buy_take_limit = self.MAX_TAKE_SIZE.get(product, 10)
+                if emeralds_cheap_ask:
+                    buy_take_limit = self.EMERALDS_RARE_STATE_TAKE_SIZE
+                buy_volume = min(best_ask_amount, buy_take_limit, buy_capacity)
+                if buy_volume > 0:
+                    orders.append(Order(product, best_ask, buy_volume))
+                    took_buy = True
+
+            best_bid_amount = order_depth.buy_orders[best_bid]
+            sell_take_edge = self.get_effective_take_edge(product, "SELL", position, spread)
+            if best_bid >= adjusted_fair_value + sell_take_edge and sell_capacity > 0:
+                sell_take_limit = self.MAX_TAKE_SIZE.get(product, 10)
+                if emeralds_rich_bid:
+                    sell_take_limit = self.EMERALDS_RARE_STATE_TAKE_SIZE
+                sell_volume = min(best_bid_amount, sell_take_limit, sell_capacity)
+                if sell_volume > 0:
+                    orders.append(Order(product, best_bid, -sell_volume))
+                    took_sell = True
+
+            buy_quote, sell_quote = self.get_passive_quotes(
+                product,
+                adjusted_fair_value,
+                best_bid,
+                best_ask,
+                position,
+                limit,
+            )
+
+            if emeralds_cheap_ask and position <= 0:
+                sell_quote = None
+            elif emeralds_rich_bid and position >= 0:
+                buy_quote = None
+
+            if (
+                not took_buy
+                and buy_quote is not None
+                and buy_capacity > 0
+                and self.should_place_passive_order("BUY", position, limit)
+            ):
+                passive_buy_size = self.get_passive_size(product, position, "BUY", spread)
+                if emeralds_cheap_ask:
+                    passive_buy_size += self.EMERALDS_RARE_STATE_PASSIVE_BONUS
+                passive_buy_size = min(passive_buy_size, buy_capacity)
+                if passive_buy_size > 0:
+                    orders.append(Order(product, buy_quote, passive_buy_size))
+
+            if (
+                not took_sell
+                and sell_quote is not None
+                and sell_capacity > 0
+                and self.should_place_passive_order("SELL", position, limit)
+            ):
+                passive_sell_size = self.get_passive_size(product, position, "SELL", spread)
+                if emeralds_rich_bid:
+                    passive_sell_size += self.EMERALDS_RARE_STATE_PASSIVE_BONUS
+                passive_sell_size = min(passive_sell_size, sell_capacity)
+                if passive_sell_size > 0:
+                    orders.append(Order(product, sell_quote, -passive_sell_size))
+
+            result[product] = orders
+
+        traderData = ""
+        conversions = 0
+        return result, conversions, traderData

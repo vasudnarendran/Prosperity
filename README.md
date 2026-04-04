@@ -9,8 +9,8 @@ Usless
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 1'764
-Bot: Trader v6.2
+Record Total PnL: 1'791
+Bot: Trader v8
 
 Failed_Bot_Count: 5
 
@@ -100,7 +100,19 @@ Notes: Close to V6.2 but still slightly worse. EMERALDS stayed identical, while 
 PnL: 1'750
 
 V7:
-Works: Not tested yet
+Works: Yes
 Improvement: Keeps TOMATOES on the proven V6.2-style logic and introduces a dedicated EMERALDS module with fixed-anchor pricing, stronger state-based reactions around the rare off-anchor book states, and more aggressive reversion-style sizing.
-Notes: Built as the first branch that explicitly targets EMERALDS improvement instead of continuing to tune TOMATOES.
-PnL:
+Notes: Worse than V6.2. TOMATOES stayed identical, but the EMERALDS module overtraded heavily, moving from a selective high-quality profile to many more lower-edge trades with much worse average buy and sell prices.
+PnL: 1'534
+
+V7.1:
+Works: Yes
+Improvement: Returns to the V6.2 base and adds only a narrow EMERALDS rare-state enhancement: a bit more size and slightly stronger quote bias when the best ask compresses to 10000 or the best bid lifts to 10000, while suppressing the wrong-side quote in those moments.
+Notes: Very close to V6.2, but still slightly worse overall. TOMATOES stayed identical and the whole gap came from EMERALDS buying a touch worse while keeping the same general trade profile, so this looks more like a tiny execution shift than a new edge.
+PnL: 1'757
+
+V8:
+Works: Yes
+Improvement: Larger rewrite that combines the strongest parts of the earlier bots into a more modular structure: traderData memory, product-specific fair value models, microprice and history signals, regime-aware take edges, and separate passive quoting logic.
+Notes: New record version. The gain came almost entirely from TOMATOES: it kept the same trade count as V6.2 but bought slightly cheaper and sold materially better on average. EMERALDS was weaker than V6.2, so V8's current edge looks like a stronger TOMATOES engine rather than an all-around improvement yet.
+PnL: 1'791
