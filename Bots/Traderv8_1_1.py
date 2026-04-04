@@ -47,10 +47,10 @@ class Trader:
 
     HISTORY_LENGTH = 8
     SOFT_LIMIT_RATIO = 0.55
-    TOMATOES_BULLISH_MOMENTUM = 2.0
-    TOMATOES_STRONG_BULLISH_MOMENTUM = 3.0
-    TOMATOES_BULLISH_IMBALANCE = 0.20
-    TOMATOES_STRONG_BULLISH_IMBALANCE = 0.40
+    TOMATOES_BULLISH_MOMENTUM = 2.5
+    TOMATOES_STRONG_BULLISH_MOMENTUM = 4.0
+    TOMATOES_BULLISH_IMBALANCE = 0.30
+    TOMATOES_STRONG_BULLISH_IMBALANCE = 0.50
 
     def load_trader_data(self, trader_data: str) -> Dict[str, List[float]]:
         if not trader_data:
@@ -199,7 +199,7 @@ class Trader:
             restraint += 0.5
         if market_state["imbalance"] >= self.TOMATOES_STRONG_BULLISH_IMBALANCE:
             restraint += 0.5
-        if position <= 10:
+        if position <= 5:
             restraint += 0.5
 
         return restraint
@@ -239,13 +239,13 @@ class Trader:
                     edge += 0.5
                 elif market_state["momentum"] >= 2.0:
                     edge -= 0.25
-                edge -= 0.15 * min(1.5, bullish_sell_restraint)
+                edge -= 0.10 * min(1.0, bullish_sell_restraint)
             else:
                 if market_state["momentum"] >= 2.0:
                     edge += 0.5
                 elif market_state["momentum"] <= -2.0:
                     edge -= 0.25
-                edge += 0.35 * bullish_sell_restraint
+                edge += 0.18 * bullish_sell_restraint
             edge += 0.25 * self.get_toxicity(product, market_state)
         else:
             if side == "BUY" and market_state["best_ask"] <= 10000:
@@ -310,9 +310,9 @@ class Trader:
             if bullish_sell_restraint > 0:
                 sell_quote = max(
                     sell_quote,
-                    best_ask - 1 + min(2, math.ceil(bullish_sell_restraint)),
+                    best_ask - 1 + min(1, math.ceil(bullish_sell_restraint)),
                 )
-                if position <= 10 and bullish_sell_restraint >= 1.5:
+                if position <= 2 and bullish_sell_restraint >= 2.0:
                     sell_quote = None
 
         final_buy_quote = buy_quote if buy_quote is not None and buy_quote < best_ask else None
@@ -347,7 +347,7 @@ class Trader:
                     position,
                     market_state,
                 )
-                size -= math.ceil(bullish_sell_restraint)
+                size -= min(1, math.ceil(bullish_sell_restraint))
         elif (
             (side == "BUY" and market_state["best_ask"] <= 10000)
             or (side == "SELL" and market_state["best_bid"] >= 10000)
