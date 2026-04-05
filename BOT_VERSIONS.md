@@ -427,3 +427,93 @@ Works: Yes
 Improvement: Clean upload-safe continuation of the best V27.2 regional sweep result. Keeps EMERALDS frozen and applies the strongest local TOMATOES combination from `region_random_53`.
 Notes: Best current bot overall. Rust PnL reached 14'350 exactly, and both official runs came back identical at 2'381.875. EMERALDS stayed exactly fixed at 1'050.0, so the whole official gain over V27.2 came from TOMATOES again. Official TOMATOES improved from 1'309.875 to 1'331.875 with the same trade counts and better average buy and sell prices. The repeated identical result is a strong sign that the gain is stable rather than lucky.
 PnL: Official 2'381.9 (twice) | Rust 14'350
+
+V28.1:
+Works: Yes
+Improvement: Riskier continuation of V27.3 through wider TOMATOES trend inventory bands, allowing the bot to carry more directional exposure in confirmed trend states.
+Notes: No local change at all. Rust PnL tied V27.3 exactly at 14'350 with TOMATOES unchanged at 6'947 over 722 trades. That suggests the wider bands did not bind in the current winning path, so simply expanding the allowed carry range is not enough by itself.
+PnL: Official N/A | Rust 14'350
+
+V28.2:
+Works: Yes
+Improvement: Riskier continuation of V27.3 through lower TOMATOES inventory skew, so the bot flattens more slowly and tolerates larger carried positions before leaning back toward flat.
+Notes: Worse locally. Rust PnL dropped to 14'209 with TOMATOES at 6'806 and 720 trades. So reducing inventory skew directly gave back edge rather than unlocking a better higher-drawdown path.
+PnL: Official N/A | Rust 14'209
+
+V28.3:
+Works: Yes
+Improvement: Riskier continuation of V27.3 through stronger trend-side hold bonuses and slower exits, aiming to let TOMATOES winners run longer and accept more drawdown on the way.
+Notes: Clearly worse locally. Rust PnL fell to 14'030 with TOMATOES at 6'627 over 722 trades. This suggests that the current V27.3 engine is already close to the useful edge in exit patience, and pushing it further mostly delays good exits instead of improving carry.
+PnL: Official N/A | Rust 14'030
+
+V27.3 Combo Sweep:
+Works: Yes
+Improvement: Broader combination-style search around the V27.3 winner, testing interactions between spread control, imbalance scaling, take edge, reservation control, and trend-side hold behavior.
+Notes: The best result was still mostly a spread-control story. `spread_plus` reached 14'384 Rust PnL, beating the V27.3 baseline of 14'350. Most other combinations were flat or worse, which suggests the current family has little room outside stronger quote-width control.
+PnL: Best Rust 14'384 | Baseline 14'350
+
+V29:
+Works: Yes
+Improvement: Clean upload-safe continuation of V27.3 using the best V27.3 combo result: slightly wider base quote edge and stronger spread-control coefficients.
+Notes: Small but real official improvement. Rust PnL reached 14'384 with EMERALDS unchanged at 7'403 and TOMATOES at 6'981 over 722 trades. Officially, V29 improved from 2'381.875 to 2'386.875. EMERALDS stayed exactly fixed at 1'050.0, and TOMATOES improved from 1'331.875 to 1'336.875 with the same trade counts, a slightly better average buy, and an unchanged average sell.
+PnL: Official 2'386.9 | Rust 14'384
+
+V30:
+Works: Yes
+Improvement: First simplified redesign attempt. Prunes a lot of overlapping control logic and keeps a much more compact fair-value, inventory, and spread framework.
+Notes: Runs cleanly, but simplification cost a lot of edge. Rust PnL reached 10'745 with EMERALDS at 6'394 and TOMATOES at 4'351 over 612 trades. So the leaner structure is workable, but too much of the profitable control logic was removed.
+PnL: Official N/A | Rust 10'745
+
+V30.1:
+Works: Yes
+Improvement: Alternative simplified branch with the same general cleanup idea but slightly different weights and quoting behavior.
+Notes: Much weaker than both V29 and V30. Rust PnL reached only 5'008 with EMERALDS at 2'274 and TOMATOES at 2'734 over 661 trades. This version is runnable, but clearly not competitive.
+PnL: Official N/A | Rust 5'008
+
+V29.1 Family:
+Works: Yes
+Improvement: Three narrow continuations of V29 clean, isolating spread control, sell patience, and deeper imbalance usage.
+Notes: The only branch that improved was the spread-heavy one. All three kept EMERALDS fixed at 7'403 and 722 trades, so the differences are entirely TOMATOES control quality.
+PnL: Baseline Rust 14'384 | Best Rust 14'430
+
+V29.1a:
+Works: Yes
+Improvement: Spread-heavy branch with a wider base quote edge and stronger volatility, inventory, and time-based spread control.
+Notes: Best of the family. Rust PnL reached 14'430 with TOMATOES at 7'027 over 722 trades, beating V29 clean by 46. This says spread control is still the strongest live lever in the current family.
+PnL: Official N/A | Rust 14'430
+
+V29.1b:
+Works: Yes
+Improvement: Sell-patience-heavy branch with stronger trend-side hold bonuses, extra sell hold, higher quote lift, and more time-based hold.
+Notes: Worse than baseline. Rust PnL dropped to 14'042 with TOMATOES at 6'639 over 722 trades. So extra exit patience in this family is still giving back too much edge.
+PnL: Official N/A | Rust 14'042
+
+V29.1c:
+Works: Yes
+Improvement: Deeper-imbalance-heavy branch with stronger imbalance weighting and an easier trend imbalance threshold.
+Notes: Better than the sell-patience branch but still below baseline. Rust PnL reached 14'168 with TOMATOES at 6'765 over 722 trades. Imbalance matters, but not as much as cleaner spread control.
+PnL: Official N/A | Rust 14'168
+
+V29.2:
+Works: Yes
+Improvement: Adds a TOMATOES rebound-exit gate for long inventory accumulated in downtrends, suppressing sells until either a rebound, a time release, or an adverse stop.
+Notes: Completely neutral locally. Rust PnL tied V29 exactly at 14'384 with EMERALDS at 7'403, TOMATOES at 6'981, and 722 trades. So the idea is not obviously wrong, but in this form it did not bind enough to change behavior.
+PnL: Official N/A | Rust 14'384
+
+V29.3:
+Works: Yes
+Improvement: Quote-refined continuation of the spread-heavy V29.1a branch, adding slightly stronger directional quote skew in TOMATOES trend states.
+Notes: Positive, but not a new local winner. Rust PnL reached 14'430 with EMERALDS at 7'403 and TOMATOES at 7'027 over 722 trades, exactly matching V29.1a. So the quote asymmetry is viable, but this version did not improve beyond the existing spread-heavy optimum.
+PnL: Official N/A | Rust 14'430
+
+V29.1a Plateau Sweep:
+Works: Yes
+Improvement: Focused local sweep around the V29.1a / V29.3 plateau, searching for another hidden pocket in the spread-heavy region instead of inventing a new strategy family.
+Notes: The plateau was breakable, but only slightly. Best result was `spread_plus_small` at 14'438, beating V29.1a by 8. The winning region again came entirely from TOMATOES and kept the same 722 trades, so this is still a quote-control improvement rather than a flow change.
+PnL: Best Rust 14'438 | Baseline 14'430
+
+V29.4:
+Works: Yes
+Improvement: Clean upload-safe continuation of the plateau sweep winner, pushing the spread-heavy region slightly further with a higher base quote edge and stronger volatility, inventory, and time spread coefficients.
+Notes: New best official bot. Rust PnL reached 14'438 with EMERALDS unchanged at 7'403 and TOMATOES at 7'035 over 722 trades. Officially, V29.4 improved from 2'386.875 to 2'394.875. EMERALDS stayed exactly fixed at 1'050.0, and TOMATOES improved from 1'336.875 to 1'344.875 with the same trade counts, a slightly better average buy, and an unchanged average sell.
+PnL: Official 2'394.9 | Rust 14'438

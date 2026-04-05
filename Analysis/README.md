@@ -60,6 +60,18 @@ Run the tighter V27.2 regional continuation sweep from the project root:
 python3 Analysis/v27_2_region_sweep.py
 ```
 
+Run the V27.3 combination sweep from the project root:
+
+```bash
+python3 Analysis/v27_3_combo_sweep.py
+```
+
+Run the V29.1a plateau sweep from the project root:
+
+```bash
+python3 Analysis/v29_1a_plateau_sweep.py
+```
+
 Train the offline TOMATOES ML model from the project root:
 
 ```bash
@@ -98,6 +110,10 @@ Main outputs:
 - `v27_1_broad_sweep_results.csv`
 - `v27_2_region_report.txt`
 - `v27_2_region_results.csv`
+- `v27_3_combo_report.txt`
+- `v27_3_combo_results.csv`
+- `v29_1a_plateau_report.txt`
+- `v29_1a_plateau_results.csv`
 - `tomatoes_offline_model_report.txt`
 - `tomatoes_offline_model_best_mse.json`
 - `tomatoes_offline_model_best_proxy.json`

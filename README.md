@@ -17,27 +17,27 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 2'382
-Bot: Trader v27.3
+Record Total PnL: 2'395
+Bot: Trader v29.4
 
 Failed_Bot_Count: 5
 
 Current Best Notes:
-V27.3 is currently the best official bot.
-It keeps the V16 EMERALDS engine unchanged and extends the V27.2 TOMATOES control family with the strongest local regional continuation we found: more spread control, stronger imbalance usage, firmer take edge, and more trend-side sell patience. Both official runs came back identical, and the gain again came entirely from TOMATOES while EMERALDS stayed fixed at its 1'050 profile.
+V29.4 is currently the best official bot.
+It keeps the V16 EMERALDS engine unchanged and pushes the spread-heavy V29 family slightly further with a higher TOMATOES base quote edge and stronger volatility, inventory, and time-based spread control. The gain was again small but real, and it again came entirely from TOMATOES while EMERALDS stayed fixed at its 1'050 profile.
 
 # Current Parameter Map:
-Based on [Traderv27_3.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv27_3.py), which is the current best official bot.
+Based on [Traderv29_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_4.py), which is the current best official bot.
 
 | Product | Fair Value | Inventory Skew | Take Logic | Quote Logic | Size Logic | Target / Bias |
 | --- | --- | --- | --- | --- | --- | --- |
 | `EMERALDS` | `0.80 * 10000 + 0.20 * mid` | `0.12` against current position | Tiered taking by distance from fair: small / medium / large clips, plus explicit clear orders near fair | Join or step-inside book-aware quotes using `disregard_edge`, `join_edge`, and `default_edge`, with early inventory leaning | Base order size `10`, larger on the side that helps flatten, smaller on the wrong side | Fixed-anchor market maker around `10000` with explicit inventory recycling |
-| `TOMATOES` | `0.25 * mid + 0.30 * micro + 0.25 * history + 0.20 * predicted_next + 0.35 * imbalance`, plus trend fair-value carry bonus | `0.035` against current position, then adjusted again through a reservation-price control layer | Base take edge `1.25`, shifted by forecasted edge, fit quality, inventory, spread, volatility, trend-carry bonuses, and stronger control-layer hold adjustments | Base quote edge `2.40`, then widened or tightened by PDE/HJB-style spread control using stronger volatility, inventory, and time coefficients | Passive size `8`, trend passive-size bonus `2`, max take size `10` | Predictive carry regime model with inventory-aware reservation price, adaptive quote-width control, and stronger trend-side exit patience |
+| `TOMATOES` | `0.25 * mid + 0.30 * micro + 0.25 * history + 0.20 * predicted_next + 0.35 * imbalance`, plus trend fair-value carry bonus | `0.035` against current position, then adjusted again through a reservation-price control layer | Base take edge `1.25`, shifted by forecasted edge, fit quality, inventory, spread, volatility, trend-carry bonuses, and stronger control-layer hold adjustments | Base quote edge `2.75`, then widened or tightened by PDE/HJB-style spread control using stronger volatility, inventory, and time coefficients | Passive size `8`, trend passive-size bonus `2`, max take size `10` | Predictive carry regime model with inventory-aware reservation price, adaptive quote-width control, and stronger trend-side exit patience |
 
 Important candidate note:
-- `V27.3` is now the official best and improved over `V27.2` by about `+22`.
-- Both official `V27.3` runs came back identical at `2'381.875`, which is a strong sign that the gain is stable.
-- The official gain came entirely from TOMATOES again, while EMERALDS stayed unchanged at `1'050`.
+- `V29.4` is now the official best and improved over `V29` by `+8`.
+- `V27.3` was stable across two identical official runs at `2'381.875`, `V29` pushed that to `2'386.875`, and `V29.4` then reached `2'394.875`.
+- The official gain again came entirely from TOMATOES, while EMERALDS stayed unchanged at `1'050`.
 - `V20.1` and `V18` remain the core structural breakthroughs because the `V27.x` family is mainly improving the TOMATOES control layer on top of that alpha family.
 
 Emeralds key levers:
@@ -65,7 +65,7 @@ Tomatoes key levers:
 - `IMBALANCE_WEIGHT = 0.35`
 - `INVENTORY_SKEW = 0.035`
 - `BASE_TAKE_EDGE = 1.25`
-- `BASE_QUOTE_EDGE = 2.40`
+- `BASE_QUOTE_EDGE = 2.75`
 - `MAX_QUOTE_EDGE = 5.0`
 - `PASSIVE_SIZE = 8`
 - `MAX_TAKE_SIZE = 10`
@@ -90,9 +90,9 @@ Tomatoes key levers:
 - `RESERVATION_SCALE = 0.12`
 - `TREND_RESERVATION_BIAS = 0.04`
 - `RANGE_RESERVATION_BIAS = 0.20`
-- `SPREAD_VOL_COEF = 0.64`
-- `SPREAD_INV_COEF = 0.28`
-- `SPREAD_TIME_COEF = 0.64`
+- `SPREAD_VOL_COEF = 0.90`
+- `SPREAD_INV_COEF = 0.42`
+- `SPREAD_TIME_COEF = 0.90`
 - `HOLD_VOL_COEF = 0.0`
 - `HOLD_TIME_COEF = 0.08`
 - `ALPHA_EDGE_SCALE = 1.06`

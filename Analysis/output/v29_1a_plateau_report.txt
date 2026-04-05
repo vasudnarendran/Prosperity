@@ -1,0 +1,60 @@
+V29.1a Plateau Sweep
+Cases: 103
+Baseline: 14430 total | TOMATOES 7027 | trades 722
+Best: spread_plus_small | 14438 total | TOMATOES 7035 | trades 722
+
+Top 10:
+- spread_plus_small: total 14438 | TOMATOES 7035 | trades 722
+- plateau_random_013: total 14438 | TOMATOES 7035 | trades 722
+- plateau_random_076: total 14438 | TOMATOES 7035 | trades 722
+- plateau_random_033: total 14435 | TOMATOES 7032 | trades 722
+- plateau_random_017: total 14433 | TOMATOES 7030 | trades 722
+- baseline_v29_1a: total 14430 | TOMATOES 7027 | trades 722
+- plateau_random_015: total 14428 | TOMATOES 7025 | trades 722
+- quote_alpha_blend: total 14427 | TOMATOES 7024 | trades 722
+- plateau_random_088: total 14425 | TOMATOES 7022 | trades 722
+- plateau_random_091: total 14425 | TOMATOES 7022 | trades 722
+
+Best By Family:
+- baseline: baseline_v29_1a | total 14430 | TOMATOES 7027
+- designed: spread_plus_small | total 14438 | TOMATOES 7035
+- random: plateau_random_013 | total 14438 | TOMATOES 7035
+
+Winning Overrides:
+- BASE_QUOTE_EDGE = 2.75
+- FIT_THRESHOLD = 0.45
+- GAMMA_RANGE = 0.34
+- GAMMA_TREND = 0.1
+- GAMMA_VOLATILE = 0.4
+- HISTORY_WEIGHT = 0.25
+- HOLD_TIME_COEF = 0.08
+- HOLD_VOL_COEF = 0.0
+- IMBALANCE_WEIGHT = 0.35
+- INVENTORY_SKEW = 0.035
+- MAX_QUOTE_EDGE = 5.0
+- MAX_TAKE_SIZE = 10
+- MICRO_WEIGHT = 0.3
+- MID_WEIGHT = 0.25
+- PASSIVE_SIZE = 8
+- POSITION_BIAS_DIVISOR = 12.0
+- REGRESSION_HORIZON = 2.0
+- REGRESSION_WEIGHT = 0.2
+- REGRESSION_WINDOW = 8
+- RESIDUAL_REVERT_WEIGHT = 0.12
+- SOFT_LIMIT_RATIO = 0.65
+- SPREAD_INV_COEF = 0.42
+- SPREAD_TIME_COEF = 0.9
+- SPREAD_VOL_COEF = 0.9
+- STRONG_TREND_EDGE = 2.5
+- STRONG_TREND_HOLD_EXIT_BONUS = 0.9
+- TIME_HORIZON_TICKS = 10000.0
+- TOXIC_SPREAD_THRESHOLD = 15.0
+- TOXIC_VOLATILITY_THRESHOLD = 3.2
+- TREND_EDGE_THRESHOLD = 1.0
+- TREND_ENTRY_TAKE_BONUS = 3.0
+- TREND_FAIR_BONUS = 0.25
+- TREND_HOLD_EXIT_BONUS = 0.55
+- TREND_IMBALANCE_THRESHOLD = 0.12
+- TREND_PASSIVE_PUSH = 0.0
+- TREND_PASSIVE_SIZE_BONUS = 2.0
+- VOL_CONTROL_WINDOW = 8

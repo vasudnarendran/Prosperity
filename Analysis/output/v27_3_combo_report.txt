@@ -1,0 +1,27 @@
+V27.3 combination sweep
+
+Baseline v27.3 Rust PnL: 14350 | EMERALDS 7403 | TOMATOES 6947 | trades 722
+
+Top results:
+- spread_plus: 14384 (delta +34, TOMATOES 6981, trades 722)
+- combo_random_24: 14361 (delta +11, TOMATOES 6958, trades 722)
+- combo_random_43: 14359 (delta +9, TOMATOES 6956, trades 722)
+- imbalance_plus: 14352 (delta +2, TOMATOES 6949, trades 722)
+- baseline_v27_3: 14350 (delta +0, TOMATOES 6947, trades 722)
+- take_hold_balance: 14350 (delta +0, TOMATOES 6947, trades 722)
+- quote_lift_plus: 14350 (delta +0, TOMATOES 6947, trades 722)
+- combo_random_49: 14346 (delta -4, TOMATOES 6943, trades 722)
+- combo_random_37: 14344 (delta -6, TOMATOES 6941, trades 722)
+- combo_random_27: 14337 (delta -13, TOMATOES 6934, trades 722)
+- combo_random_28: 14329 (delta -21, TOMATOES 6926, trades 722)
+- combo_random_26: 14328 (delta -22, TOMATOES 6925, trades 722)
+
+Family summary:
+- baseline: best baseline_v27_3 at 14350, average 14350, best delta +0
+- designed: best spread_plus at 14384, average 14256, best delta +34
+- random: best combo_random_24 at 14361, average 14124, best delta +11
+
+Interpretation:
+- Best overall case: spread_plus (designed) at 14384.
+- This sweep tries combination-style improvements around the current best bot instead of only isolated single-lever changes.
+- It focuses on interactions between spread control, imbalance scaling, take edge, reservation control, and trend-side hold behavior.
