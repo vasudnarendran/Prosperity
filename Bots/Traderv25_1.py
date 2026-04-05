@@ -54,6 +54,109 @@ DEFAULT_TOMATOES_PARAMS = {
     "STRONG_TREND_HOLD_EXIT_BONUS": 0.90,
     "TREND_PASSIVE_PUSH": 0.0,
     "TREND_PASSIVE_SIZE_BONUS": 2.0,
+    "OFFLINE_SHORT_BLEND": 0.80,
+    "OFFLINE_LONG_BLEND": 0.45,
+    "OFFLINE_TARGET_BLEND": 0.35,
+    "OFFLINE_FIT_BOOST": 0.10,
+    "OFFLINE_HOLD_BONUS": 0.35,
+}
+
+TOMATOES_OFFLINE_SHORT_MODEL = {
+    "intercept": 0.000650065006500645,
+    "weights": [
+        -0.0734700409228398,
+        -0.041217190347196044,
+        0.49460745702953013,
+        0.044370171597289135,
+        -0.1062191842729545,
+        -0.0032943305657063826,
+        -0.04417620678375594,
+        -0.031243685903890754,
+        0.020180570987206783,
+        -0.004970440282015101,
+        0.4041622817545581,
+        -0.029385027486903255,
+        0.020942620549447705,
+    ],
+    "means": [
+        -0.0031513966463079077,
+        0.00011468326196083741,
+        -8.050793744245013e-05,
+        13.065206520652065,
+        8.33416675001065e-05,
+        0.0007000700070007,
+        0.0012917958462535962,
+        0.002770574676515248,
+        0.7933543354335434,
+        0.7936906785916901,
+        0.022652265226522653,
+        0.0007000700070007,
+        0.0007000700070007,
+    ],
+    "stds": [
+        0.3248570425769033,
+        0.08542350806467922,
+        0.10107457769206805,
+        1.7546670397814415,
+        2.019741357400114,
+        1.3449462435319761,
+        1.197244813380668,
+        1.2925626959636718,
+        0.9114980375328133,
+        0.5423074653153771,
+        0.7852856763955841,
+        1.698171925554025,
+        1.9596131042384606,
+    ],
+}
+
+TOMATOES_OFFLINE_LONG_MODEL = {
+    "intercept": 0.004753803042435639,
+    "weights": [
+        -0.13317595450908412,
+        0.006097692873138051,
+        0.4871679155779466,
+        0.09270659357432906,
+        -0.10537939447685916,
+        -0.0034958754459525738,
+        -0.017688594338426476,
+        -0.14019470301093645,
+        0.01956721493100583,
+        0.03856208034730228,
+        0.3678060959551497,
+        -0.02003828236792511,
+        0.012566396908881977,
+    ],
+    "means": [
+        -0.0031536043901554014,
+        0.00011476360451825593,
+        -8.056433811920125e-05,
+        13.06455164131305,
+        -5.0040032025597386e-05,
+        0.0007506004803843075,
+        0.0014261409127324597,
+        0.0030039507796713336,
+        0.7936349079263411,
+        0.7939035752411667,
+        0.022668134507606085,
+        0.0008006405124099279,
+        0.0007005604483586869,
+    ],
+    "stds": [
+        0.32497080293993214,
+        0.08545342493754808,
+        0.10110997589676396,
+        1.7551070450908777,
+        2.0204321988301817,
+        1.3452963595006537,
+        1.1975734294814389,
+        1.292920067887511,
+        0.911729136327626,
+        0.5424316652021889,
+        0.7855604693174039,
+        1.6986782407802306,
+        1.9601972881152223,
+    ],
 }
 
 
@@ -64,12 +167,16 @@ class BaseProductTrader:
         self,
         product: str,
         state: TradingState,
-        mid_history: Dict[str, List[float]],
+        history_store: Dict[str, Dict[str, List[float]]],
         position_limit: int,
     ) -> None:
         self.product = product
         self.state = state
-        self.mid_history = mid_history
+        self.history_store = history_store
+        self.mid_history = history_store.setdefault("mid_history", {})
+        self.spread_history = history_store.setdefault("spread_history", {})
+        self.bid_history = history_store.setdefault("bid_history", {})
+        self.ask_history = history_store.setdefault("ask_history", {})
         self.position_limit = position_limit
         self.orders: List[Order] = []
 
@@ -93,6 +200,10 @@ class BaseProductTrader:
         self.spread: Optional[int] = None
         self.recent_average: Optional[float] = None
         self.short_average: Optional[float] = None
+        self.recent_spread_average: Optional[float] = None
+        self.previous_mid: Optional[float] = None
+        self.previous_bid: Optional[int] = None
+        self.previous_ask: Optional[int] = None
         self.momentum: float = 0.0
         self.short_momentum: float = 0.0
         self.imbalance: float = 0.0
@@ -137,14 +248,32 @@ class BaseProductTrader:
             self.imbalance = 0.0
 
         history = self.mid_history.get(self.product, [])
+        spread_history = self.spread_history.get(self.product, [])
+        bid_history = self.bid_history.get(self.product, [])
+        ask_history = self.ask_history.get(self.product, [])
+
         self.recent_average = sum(history) / len(history) if history else self.mid
         short_history = history[-3:]
         self.short_average = sum(short_history) / len(short_history) if short_history else self.mid
+        self.recent_spread_average = (
+            sum(spread_history[-3:]) / len(spread_history[-3:])
+            if spread_history[-3:]
+            else float(self.spread)
+        )
+        self.previous_mid = history[-1] if history else float(self.mid)
+        self.previous_bid = bid_history[-1] if bid_history else int(self.best_bid)
+        self.previous_ask = ask_history[-1] if ask_history else int(self.best_ask)
         self.momentum = self.mid - self.recent_average
         self.short_momentum = self.mid - self.short_average
 
         history.append(self.mid)
         self.mid_history[self.product] = history[-self.HISTORY_LENGTH :]
+        spread_history.append(float(self.spread))
+        self.spread_history[self.product] = spread_history[-self.HISTORY_LENGTH :]
+        bid_history.append(float(self.best_bid))
+        self.bid_history[self.product] = bid_history[-self.HISTORY_LENGTH :]
+        ask_history.append(float(self.best_ask))
+        self.ask_history[self.product] = ask_history[-self.HISTORY_LENGTH :]
 
     def has_book(self) -> bool:
         return self.best_bid is not None and self.best_ask is not None and self.mid is not None and self.micro is not None
@@ -217,11 +346,11 @@ class EmeraldsTrader(BaseProductTrader):
         self,
         product: str,
         state: TradingState,
-        mid_history: Dict[str, List[float]],
+        history_store: Dict[str, Dict[str, List[float]]],
         position_limit: int,
         params: Optional[Dict[str, float]] = None,
     ) -> None:
-        super().__init__(product, state, mid_history, position_limit)
+        super().__init__(product, state, history_store, position_limit)
         self.apply_parameter_overrides(self.PARAMETER_DEFAULTS, params)
         self.soft_limit = int(position_limit * self.SOFT_LIMIT_RATIO)
 
@@ -407,13 +536,53 @@ class TomatoesTrader(BaseProductTrader):
         self,
         product: str,
         state: TradingState,
-        mid_history: Dict[str, List[float]],
+        history_store: Dict[str, Dict[str, List[float]]],
         position_limit: int,
         params: Optional[Dict[str, float]] = None,
     ) -> None:
-        super().__init__(product, state, mid_history, position_limit)
+        super().__init__(product, state, history_store, position_limit)
         self.apply_parameter_overrides(self.PARAMETER_DEFAULTS, params)
         self.soft_limit = int(position_limit * self.SOFT_LIMIT_RATIO)
+
+    def depth_imbalance(self) -> float:
+        bid_2_volume = self.buy_levels[1][1] if len(self.buy_levels) > 1 else 0
+        ask_2_volume = self.sell_levels[1][1] if len(self.sell_levels) > 1 else 0
+        total = self.best_bid_volume + self.best_ask_volume + bid_2_volume + ask_2_volume
+        if total <= 0:
+            return 0.0
+        return (self.best_bid_volume + bid_2_volume - self.best_ask_volume - ask_2_volume) / total
+
+    def realized_volatility(self, window: int) -> float:
+        history = self.mid_history.get(self.product, [])[-window:]
+        if len(history) < 2:
+            return 0.0
+        diffs = [abs(history[index] - history[index - 1]) for index in range(1, len(history))]
+        return sum(diffs) / len(diffs)
+
+    def offline_features(self) -> List[float]:
+        return [
+            float(self.micro) - float(self.mid),
+            self.imbalance,
+            self.depth_imbalance(),
+            float(self.spread),
+            float(self.spread) - float(self.recent_spread_average),
+            float(self.mid) - float(self.previous_mid if self.previous_mid is not None else self.mid),
+            self.short_momentum,
+            self.momentum,
+            self.realized_volatility(3),
+            self.realized_volatility(8),
+            float(self.wall_mid if self.wall_mid is not None else self.mid) - float(self.mid),
+            float(self.best_bid) - float(self.previous_bid if self.previous_bid is not None else self.best_bid),
+            float(self.best_ask) - float(self.previous_ask if self.previous_ask is not None else self.best_ask),
+        ]
+
+    def offline_prediction(self, model: Dict[str, List[float]]) -> float:
+        raw_features = self.offline_features()
+        total = float(model["intercept"])
+        for index, value in enumerate(raw_features):
+            centered = (value - float(model["means"][index])) / float(model["stds"][index])
+            total += centered * float(model["weights"][index])
+        return total
 
     def regression_metrics(self) -> Tuple[float, float, float, float, float]:
         history = self.mid_history.get(self.product, [])
@@ -726,25 +895,51 @@ class TomatoesTrader(BaseProductTrader):
             return self.orders
 
         _slope, predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
-        predicted_edge = predicted_next - float(self.mid)
-        regime = self.classify_state(predicted_edge, fit_quality, volatility)
-        target_position = self.target_position(regime, predicted_edge, fit_quality)
-        adjusted_fair = self.adjusted_fair_value(regime, target_position, predicted_now, predicted_next)
+        regression_edge = predicted_next - float(self.mid)
+        offline_short_edge = self.offline_prediction(TOMATOES_OFFLINE_SHORT_MODEL)
+        offline_long_edge = self.offline_prediction(TOMATOES_OFFLINE_LONG_MODEL)
+
+        predicted_edge = (
+            regression_edge
+            + (self.OFFLINE_SHORT_BLEND * offline_short_edge)
+            + (self.OFFLINE_LONG_BLEND * offline_long_edge)
+        )
+        target_edge = predicted_edge + (self.OFFLINE_TARGET_BLEND * offline_long_edge)
+        effective_fit = min(
+            1.0,
+            fit_quality
+            + (self.OFFLINE_FIT_BOOST * min(1.0, abs(offline_short_edge) + (0.5 * abs(offline_long_edge)))),
+        )
+        blended_next = float(self.mid) + predicted_edge
+
+        regime = self.classify_state(predicted_edge, effective_fit, volatility)
+        target_position = self.target_position(regime, target_edge, effective_fit)
+        if regime == "trend_up" and offline_long_edge > self.TREND_EDGE_THRESHOLD:
+            target_position = min(self.position_limit, target_position + 4)
+        elif regime == "trend_down" and offline_long_edge < -self.TREND_EDGE_THRESHOLD:
+            target_position = max(-self.position_limit, target_position - 4)
+
+        adjusted_fair = self.adjusted_fair_value(regime, target_position, predicted_now, blended_next)
         took_buy, took_sell = self.take_orders(
             regime,
             target_position,
             adjusted_fair,
             predicted_edge,
-            fit_quality,
+            effective_fit,
             volatility,
         )
+
+        if regime == "trend_up" and offline_long_edge > self.TREND_EDGE_THRESHOLD:
+            predicted_edge += self.OFFLINE_HOLD_BONUS
+        elif regime == "trend_down" and offline_long_edge < -self.TREND_EDGE_THRESHOLD:
+            predicted_edge -= self.OFFLINE_HOLD_BONUS
 
         buy_quote, sell_quote = self.passive_quotes(
             adjusted_fair,
             regime,
             target_position,
             predicted_edge,
-            fit_quality,
+            effective_fit,
             volatility,
         )
         position = self.projected_position()
@@ -788,30 +983,37 @@ class Trader:
         "TOMATOES": TomatoesTrader,
     }
 
-    def load_trader_data(self, trader_data: str) -> Dict[str, List[float]]:
+    def load_trader_data(self, trader_data: str) -> Dict[str, Dict[str, List[float]]]:
+        empty = {
+            "mid_history": {},
+            "spread_history": {},
+            "bid_history": {},
+            "ask_history": {},
+        }
         if not trader_data:
-            return {}
+            return empty
         try:
             parsed = json.loads(trader_data)
         except json.JSONDecodeError:
-            return {}
+            return empty
 
-        raw_history = parsed.get("mid_history", {})
-        if not isinstance(raw_history, dict):
-            return {}
-
-        cleaned: Dict[str, List[float]] = {}
-        for product, values in raw_history.items():
-            if isinstance(values, list):
-                cleaned[product] = [float(value) for value in values[-BaseProductTrader.HISTORY_LENGTH :]]
+        cleaned: Dict[str, Dict[str, List[float]]] = {}
+        for key in empty:
+            raw_history = parsed.get(key, {})
+            store: Dict[str, List[float]] = {}
+            if isinstance(raw_history, dict):
+                for product, values in raw_history.items():
+                    if isinstance(values, list):
+                        store[product] = [float(value) for value in values[-BaseProductTrader.HISTORY_LENGTH :]]
+            cleaned[key] = store
         return cleaned
 
-    def build_trader_data(self, mid_history: Dict[str, List[float]]) -> str:
-        return json.dumps({"mid_history": mid_history}, separators=(",", ":"))
+    def build_trader_data(self, history_store: Dict[str, Dict[str, List[float]]]) -> str:
+        return json.dumps(history_store, separators=(",", ":"))
 
     def run(self, state: TradingState):
         result: Dict[str, List[Order]] = {}
-        mid_history = self.load_trader_data(state.traderData)
+        history_store = self.load_trader_data(state.traderData)
 
         for product in state.order_depths:
             if product not in self.PRODUCT_TRADERS:
@@ -822,11 +1024,11 @@ class Trader:
             trader = trader_class(
                 product,
                 state,
-                mid_history,
+                history_store,
                 self.POSITION_LIMITS[product],
             )
             result[product] = trader.run()
 
         conversions = 0
-        trader_data = self.build_trader_data(mid_history)
+        trader_data = self.build_trader_data(history_store)
         return result, conversions, trader_data

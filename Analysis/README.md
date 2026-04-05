@@ -36,6 +36,12 @@ Run the V20 higher-risk TOMATOES carry sweep from the project root:
 python3 Analysis/v20_risk_sweep.py
 ```
 
+Train the offline TOMATOES ML model from the project root:
+
+```bash
+python3 Analysis/train_tomatoes_offline_model.py
+```
+
 It writes human-readable reports to:
 
 ```bash
@@ -60,3 +66,6 @@ Main outputs:
 - `v18_sweep_results.csv`
 - `v20_sweep_report.txt`
 - `v20_sweep_results.csv`
+- `tomatoes_offline_model_report.txt`
+- `tomatoes_offline_model_best_mse.json`
+- `tomatoes_offline_model_best_proxy.json`

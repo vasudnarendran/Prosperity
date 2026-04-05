@@ -331,3 +331,27 @@ Works: Yes
 Improvement: Quick side test of a very simple EMERALDS maker: buy at `best_bid + 1`, sell at `best_ask - 1`, with no tiered taking or clearing logic.
 Notes: Simpler EMERALDS market making is viable, but not best. Local Rust total reached 12'981 with TOMATOES unchanged at 6'028, while EMERALDS fell from 7'403 to 6'953. So the minimal MM captures a lot of the edge, but the current EMERALDS engine still adds meaningful value.
 PnL: Rust: 12'981
+
+V24:
+Works: Yes
+Improvement: Rebuilds TOMATOES as an alpha-skewed adaptive market maker: predictive fair value, inventory-skewed two-sided quoting, join/undercut placement, and selective taking. EMERALDS stays unchanged from the current best family.
+Notes: Close, but still below V20.1 locally. Rust PnL reached 13'305 versus 13'431 for V20.1. EMERALDS stayed fixed at 7'403, while TOMATOES came in at 5'902 versus 6'028 for V20.1. Trade count rose to 755, so this version clearly participated more, but the extra maker activity did not create enough edge to beat the stronger carry baseline.
+PnL: Official N/A | Rust: 13'305
+
+V24.1:
+Works: Yes
+Improvement: Makes the V24 maker engine more selective in trends: smaller passive clips, wider quote edge, slower trend exits, and much stricter join/undercut use outside clear range states.
+Notes: This is now a genuinely different engine from V24, but it moved in the wrong direction locally. Rust PnL came in at 13'151 with EMERALDS unchanged at 7'403 and TOMATOES at 5'748. Trade count dipped slightly to 752, so the extra selectivity reduced participation but did not improve edge.
+PnL: Official N/A | Rust: 13'151
+
+V25:
+Works: Yes
+Improvement: Adds a lightweight online-ML layer on top of V20.1 for TOMATOES. It learns a small linear forecast from microprice drift, momentum, imbalance, and regression context, then blends that prediction into the existing carry signal only when the model's recent error history looks good.
+Notes: No practical change locally. Rust PnL tied V20.1 exactly at 13'431, with EMERALDS 7'403, TOMATOES 6'028, and 721 own trades. So this first ML overlay is valid and safe, but currently too weak or too aligned with the base model to move actual decisions.
+PnL: Official N/A | Rust: 13'431
+
+V25.1:
+Works: Yes
+Improvement: Offline-trained TOMATOES model on top of V20.1. The model is fitted on day -2 price data and adds a short-horizon forecast for immediate edge plus a longer-horizon directional forecast for carry/hold bias, while EMERALDS stays unchanged.
+Notes: First ML branch with a real local lift. Rust PnL reached 13'556 versus 13'431 for V20.1. EMERALDS stayed fixed at 7'403, while TOMATOES improved from 6'028 to 6'153. Trade count rose slightly to 732. Promising, but still only trained on one local day, so this needs cautious interpretation.
+PnL: Official N/A | Rust: 13'556
