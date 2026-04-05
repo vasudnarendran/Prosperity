@@ -18,6 +18,18 @@ Run the V17 microstructure sweep from the project root:
 python3 Analysis/v17_micro_sweep.py
 ```
 
+Run the wider-step V17 coarse sweep from the project root:
+
+```bash
+python3 Analysis/v17_coarse_sweep.py
+```
+
+Run the V18 regression-model sweep from the project root:
+
+```bash
+python3 Analysis/v18_regression_sweep.py
+```
+
 It writes human-readable reports to:
 
 ```bash
@@ -36,3 +48,7 @@ Main outputs:
 - `v15_sweep_results.csv`
 - `v17_sweep_report.txt`
 - `v17_sweep_results.csv`
+- `v17_coarse_report.txt`
+- `v17_coarse_results.csv`
+- `v18_sweep_report.txt`
+- `v18_sweep_results.csv`
