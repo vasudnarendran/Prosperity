@@ -547,3 +547,33 @@ Works: Yes
 Improvement: Softer calibration of the V33 fixes, reducing fill-bias penalties and toxic-state skips while restoring more residual alpha sensitivity.
 Notes: Worse than V33. Rust PnL fell to 11'976 with EMERALDS still fixed at 7'403 and TOMATOES dropping to 4'573 over 732 trades. So loosening the corrected model did not recover the lost edge; it mostly increased weaker TOMATOES activity.
 PnL: Official N/A | Rust 11'976
+
+V34:
+Works: Yes
+Improvement: Rebuild from a simpler product-specialized architecture. EMERALDS is a cleaner anchored market maker with selective deep taking and inventory-aware passive quotes, while TOMATOES keeps the richer microstructure approach but removes alpha double-counting, uses delayed markout-based adverse-fill bias, softmax regime weights, safer online RLS updates, a clearer maker/taker split, passive EV filtering, and a local mean-reversion brake.
+Notes: Strong research result even though it did not beat the best total bot. Rust PnL reached 14'010 with EMERALDS jumping to 7'717 and TOMATOES at 6'293 over 680 trades. So the EMERALDS redesign worked very well, but the simplified TOMATOES stack still trails the tuned `v29.4` control family.
+PnL: Official N/A | Rust 14'010
+
+V35:
+Works: Yes
+Improvement: TOMATOES-focused continuation of V34. EMERALDS stays behaviorally unchanged, while TOMATOES is rebuilt around one clean quote center, one inventory-control mechanism, stronger passive-fill attribution with resting-quote metadata, delayed markout-based maker learning, smoothed regime memory, and a cleaner maker-versus-taker split.
+Notes: Positive step for the R&D branch. Rust PnL improved from 14'010 to 14'055, with EMERALDS holding at 7'717 and TOMATOES improving from 6'293 to 6'338 over 658 trades. So the TOMATOES cleanup did help, but it still remains below the stronger tuned `v29.4` control family at 7'035 TOMATOES PnL.
+PnL: Official N/A | Rust 14'055
+
+V36:
+Works: Yes
+Improvement: First measured performance pass on top of the cleaned V35 foundation. EMERALDS stays unchanged, while TOMATOES adds richer book-flow summaries, realized-markout calibration for taker thresholds, passive quote calibration by context buckets, and bucket-based adjustments to quote width and target positioning by regime and toxicity.
+Notes: Encouraging local improvement without another big rewrite. Rust PnL reached 14'120 with EMERALDS unchanged at 7'717 and TOMATOES improving to 6'403 over 696 trades. So the new TOMATOES layer is clearly better than the structurally-correct V35 variants, even though it still trails the tuned `v29.4` family. The important signal is that realized taker feedback plus lighter execution calibration helped TOMATOES re-accelerate without breaking the cleaner architecture.
+PnL: Official N/A | Rust 14'120
+
+V36.1:
+Works: Yes
+Improvement: Narrow continuation of V36 that keeps the taker-first flow in normal states, but adds an asymmetric EV veto in bad states only. The veto activates when toxicity or stretch is high, and it is looser in the regime-favored direction while being stricter against counter-regime or overextended chasing trades.
+Notes: Directionally cleaner than the full V37 action-selection rewrite, but still too restrictive in this first calibration. Rust PnL reached 13'924 with EMERALDS unchanged at 7'717 and TOMATOES at 6'207 over 668 trades. So using EV as a selective taker veto is a better idea than replacing the whole action flow, but the current thresholds are still blocking too many profitable TOMATOES entries.
+PnL: Official N/A | Rust 13'924
+
+V37:
+Works: Yes
+Improvement: Adds maker-versus-taker action selection by expected value each tick. Instead of always running the aggressive sweep first, TOMATOES now computes preliminary passive EV, estimates aggressive EV from the same state, and only takes liquidity when the taker opportunity clearly beats the passive alternative by a margin.
+Notes: Useful result, but not an improvement. Rust PnL reached 14'044 with EMERALDS unchanged at 7'717 and TOMATOES at 6'327 over 670 trades. So the EV-selection idea is directionally sensible, but in this first calibration it made TOMATOES a bit too selective and gave back part of the V36 gain. The likely takeaway is that the taker gate needs softer margins or asymmetric use rather than a uniform all-sides filter.
+PnL: Official N/A | Rust 14'044

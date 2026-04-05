@@ -26,6 +26,25 @@ Current Best Notes:
 V29.4 is currently the best official bot.
 It keeps the V16 EMERALDS engine unchanged and pushes the spread-heavy V29 family slightly further with a higher TOMATOES base quote edge and stronger volatility, inventory, and time-based spread control. The gain was again small but real, and it again came entirely from TOMATOES while EMERALDS stayed fixed at its 1'050 profile.
 
+# Performance Maxes
+These are the highest scores reached so far. The best single-product peak does not always come from the best total bot.
+
+## Local Rust Backtester
+
+| Metric | Best Value | Bot |
+| --- | ---: | --- |
+| Total PnL | `14'438` | `V29.4` |
+| EMERALDS PnL | `7'717` | `V34` |
+| TOMATOES PnL | `7'035` | `V29.4` |
+
+## Official Logs
+
+| Metric | Best Value | Bot |
+| --- | ---: | --- |
+| Total PnL | `2'394.875` | `V29.4` |
+| EMERALDS PnL | `1'050.0` | `V16` first reached it, later matched by several bots including `V29.4` |
+| TOMATOES PnL | `1'357.867` | `V31` |
+
 # Current Parameter Map:
 Based on [Traderv29_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_4.py), which is the current best official bot.
 
