@@ -1,60 +1,48 @@
-## How to run the backtest
+# Backtest
 
-Run this in the VS Code terminal from the project folder:
-
-```bash
-python3 backtest_round0.py
-```
-
-After the script finishes, it saves files into:
+Run the backtest from inside this folder:
 
 ```bash
-backtest_output/
+python3 backtest
 ```
 
-
-
-## What gets generated
-
-### 1. Full log CSV
+That uses the current default bot:
 
 ```bash
-backtest_output/backtest_log.csv
+Traderv9.py
 ```
 
-This contains the step-by-step output of the backtest, for example:
-- day
-- timestamp
-- positions
-- mid prices
-- portfolio mark-to-market value
-- executed orders
-
-### 2. Portfolio plot
+You can test a different bot like this:
 
 ```bash
-backtest_output/portfolio_mtm.png
+python3 backtest Traderv8.py
 ```
 
-This shows the portfolio mark-to-market value over time.
-
-### 3. Position plot
+Outputs are written to:
 
 ```bash
-backtest_output/positions.png
+output/<bot_name>/
 ```
 
-This shows how your position in `EMERALDS` and `TOMATOES` changes over time.
+Main files:
 
-## How to view the plots
+- `output/<bot_name>/summary.txt`
+- `output/<bot_name>/step_log.csv`
+- `output/<bot_name>/fills.csv`
+- `output/<bot_name>/product_log.csv`
+- `output/<bot_name>/pnl_overview.png`
+- `output/<bot_name>/positions.png`
+- `output/<bot_name>/emeralds_price_and_fills.png`
+- `output/<bot_name>/tomatoes_price_and_fills.png`
 
-You do **not** need to read only the CSV.
+What this local backtest does:
 
-In VS Code, open the files directly:
+- feeds real market snapshots from `Data/`
+- loads your trader file directly from `Bots/` or `Bots/archive/`
+- simulates immediate fills for crossing orders
+- simulates one-interval resting fills for passive orders
+- tracks cash, positions, product PnL, and total PnL
 
-- `backtest_output/portfolio_mtm.png`
-- `backtest_output/positions.png`
+Important note:
 
-VS Code will show them as images.
-
-You can also open them in Finder by navigating to the `backtest_output` folder.
+This is meant to be a useful local approximation of Prosperity-style testing, but it is not the official hidden simulator.

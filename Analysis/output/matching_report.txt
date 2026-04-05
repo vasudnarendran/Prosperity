@@ -1,0 +1,27 @@
+# Matching Inference
+
+This section is inferred from the recorded fills versus the top-of-book in the logs.
+It is not the exchange source code, but it shows how fills behaved in practice.
+
+All Products
+- sell_inside_spread: 691
+- buy_inside_spread: 684
+- sell_at_best_bid: 136
+- buy_at_best_ask: 111
+
+EMERALDS
+- sell_inside_spread: 243
+- buy_inside_spread: 165
+- sell_at_best_bid: 117
+- buy_at_best_ask: 104
+
+TOMATOES
+- buy_inside_spread: 519
+- sell_inside_spread: 448
+- sell_at_best_bid: 19
+- buy_at_best_ask: 7
+
+Reading
+- Buy fills at best ask and sell fills at best bid indicate immediate, aggressive executions.
+- Inside-spread fills suggest passive quotes getting lifted or hit later.
+- If almost all fills are at the touch, the bot is mostly taking liquidity rather than waiting in queue.

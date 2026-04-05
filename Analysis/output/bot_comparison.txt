@@ -1,0 +1,43 @@
+# Bot Comparison
+
+Overall Ranking
+- Traderv9_log: 1799.59
+- Traderv8_log: 1790.59
+- Traderv6_2_log: 1763.59
+- Traderv7_2_log: 1756.59
+- Traderv6_5_log: 1749.59
+- Traderv6_3_1_log: 1746.59
+- Traderv8_1_1_log: 1743.31
+- Traderv8_1_log: 1647.17
+- Traderv6_3_log: 1602.59
+- Traderv6_4_log: 1559.30
+- Traderv7_log: 1533.59
+- Traderv6_log: 1172.59
+- Traderv6_1_1_log: 1168.59
+- Traderv6_1_log: 1163.59
+- Traderv8_2_log: 133.86
+- Traderv0_0_log: -335.78
+
+EMERALDS Ranking
+- Traderv6_2_log: 746.00
+- Traderv6_4_log: 746.00
+- Traderv6_5_log: 746.00
+- Traderv6_3_1_log: 744.00
+- Traderv6_3_log: 744.00
+- Traderv7_2_log: 739.00
+- Traderv9_log: 688.00
+- Traderv8_1_1_log: 683.00
+- Best: Traderv6_2_log (746.00) using two-sided market maker
+- Worst: Traderv0_0_log (-616.00) using one-sided short seller
+
+TOMATOES Ranking
+- Traderv9_log: 1111.59
+- Traderv8_log: 1107.59
+- Traderv8_1_1_log: 1060.31
+- Traderv6_2_log: 1017.59
+- Traderv7_2_log: 1017.59
+- Traderv7_log: 1017.59
+- Traderv6_5_log: 1003.59
+- Traderv6_3_1_log: 1002.59
+- Best: Traderv9_log (1111.59) using two-sided market maker
+- Worst: Traderv8_2_log (58.86) using two-sided market maker

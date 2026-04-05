@@ -1,0 +1,19 @@
+# Results Overview
+
+Best total results from the available bot logs:
+- Traderv9_log: 1799.59
+- Traderv8_log: 1790.59
+- Traderv6_2_log: 1763.59
+- Traderv7_2_log: 1756.59
+- Traderv6_5_log: 1749.59
+- Traderv6_3_1_log: 1746.59
+- Traderv8_1_1_log: 1743.31
+- Traderv8_1_log: 1647.17
+- Traderv6_3_log: 1602.59
+- Traderv6_4_log: 1559.30
+
+Reading
+- Best recorded run: Traderv9_log with pnl 1799.59
+- Weakest recorded run: Traderv0_0_log with pnl -335.78
+- Use this file together with the product reports to see whether a new version improved one product by hurting the other.
+- The current tool intentionally avoids the old backtest output files and focuses on raw market data plus real bot result logs.

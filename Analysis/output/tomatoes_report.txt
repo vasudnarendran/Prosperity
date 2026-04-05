@@ -1,0 +1,91 @@
+# TOMATOES
+
+Observed Price Behavior
+- Rows: 20000
+- Mid price range: 4946.50 to 5036.00
+- Mid price mean / stdev: 4992.76 / 19.75
+- Spread median / max: 13.00 / 14.00
+- Top mid states: 4994.00 (316), 4993.50 (310), 4997.50 (285), 5002.50 (282), 4994.50 (274)
+- Top bid/ask states: 4987/5001 (303), 4987/5000 (286), 4991/5004 (266), 4996/5009 (265), 4988/5001 (262)
+- Move counts: up 6767, down 6813, flat 6419
+- Reversal vs continuation: 7709 reversals, 5870 continuations
+- Interpretation: Shows short-horizon snap-back behavior more than persistence.
+
+Market Trade Tape
+- Market trades: 820
+- Average market trade price: 4992.57
+- Average market trade size: 3.48
+
+# TOMATOES Bot Behavior
+
+Bot Summaries
+- Traderv9_log: pnl 1111.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4986.78
+  sells 32 trades / 109 qty at avg 4995.63
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv8_log: pnl 1107.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4986.82
+  sells 32 trades / 109 qty at avg 4995.64
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv8_1_1_log: pnl 1060.31, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4984.92
+  sells 26 trades / 85 qty at avg 4992.05
+  fill profile: buy_inside_spread 36, sell_inside_spread 25, sell_at_best_bid 1
+- Traderv6_2_log: pnl 1017.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.09
+  sells 32 trades / 109 qty at avg 4995.12
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv7_2_log: pnl 1017.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.09
+  sells 32 trades / 109 qty at avg 4995.12
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv7_log: pnl 1017.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.09
+  sells 32 trades / 109 qty at avg 4995.12
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv6_5_log: pnl 1003.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.22
+  sells 32 trades / 109 qty at avg 4995.14
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv6_3_1_log: pnl 1002.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.19
+  sells 32 trades / 109 qty at avg 4995.10
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv8_1_log: pnl 964.17, style two-sided market maker
+  buys 35 trades / 120 qty at avg 4984.86
+  sells 25 trades / 83 qty at avg 4991.25
+  fill profile: buy_inside_spread 35, sell_inside_spread 24, sell_at_best_bid 1
+- Traderv6_3_log: pnl 858.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4987.81
+  sells 32 trades / 109 qty at avg 4994.48
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv6_4_log: pnl 813.30, style two-sided market maker
+  buys 33 trades / 110 qty at avg 4987.32
+  sells 27 trades / 92 qty at avg 4994.35
+  fill profile: buy_inside_spread 33, sell_inside_spread 27
+- Traderv6_1_1_log: pnl 727.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4988.25
+  sells 32 trades / 109 qty at avg 4993.78
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv6_1_log: pnl 727.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4988.25
+  sells 32 trades / 109 qty at avg 4993.78
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv6_log: pnl 727.59, style two-sided market maker
+  buys 36 trades / 124 qty at avg 4988.25
+  sells 32 trades / 109 qty at avg 4993.78
+  fill profile: buy_inside_spread 36, sell_inside_spread 32
+- Traderv0_0_log: pnl 280.22, style one-sided short seller
+  buys 0 trades / 0 qty at avg n/a
+  sells 12 trades / 80 qty at avg 5000.07
+  fill profile: sell_at_best_bid 12
+- Traderv8_2_log: pnl 58.86, style two-sided market maker
+  buys 26 trades / 97 qty at avg 4989.07
+  sells 25 trades / 92 qty at avg 4989.30
+  fill profile: sell_inside_spread 20, buy_inside_spread 19, buy_at_best_ask 7, sell_at_best_bid 5
+
+Interpretation
+- Best bot for TOMATOES: Traderv9_log with pnl 1111.59
+- Weakest bot for TOMATOES: Traderv8_2_log with pnl 58.86
+- Predictable one-sided behavior showed up in: Traderv0_0_log
+- More balanced two-sided behavior showed up in: Traderv9_log, Traderv8_log, Traderv8_1_1_log, Traderv6_2_log, Traderv7_2_log, Traderv7_log, Traderv6_5_log, Traderv6_3_1_log
