@@ -259,3 +259,75 @@ Works: Yes
 Improvement: Clean upload-safe implementation of the best V18 regression-sweep settings. It keeps the new predictive TOMATOES model but stretches the forecast horizon, lowers the trend gate, raises quote width, tightens taking, and reduces max take size.
 Notes: Local Rust result reproduced the sweep winner exactly at 13'302, so the improvement is real but very small. EMERALDS stayed unchanged at 7'403, and TOMATOES improved from 5'888 to 5'899. That means the gain is only +11 locally, but it comes from a genuinely different alpha family than the V17 pressure overlay. This makes V18.1 the best next official-site test if we want to keep exploring the regression direction without overcomplicating the model.
 PnL: Official N/A | Rust: 13'302
+
+V18.2:
+Works: Yes
+Improvement: Experimental branch that implements four layered follow-ups on top of V18: asymmetric sell optimization for TOMATOES, two-horizon regression, forecast-persistence before entering trend states, and separate buy-versus-sell trend thresholds.
+Notes: The first full-strength version was far too aggressive and collapsed locally, so it was softened into a lighter implementation. The current local result is stable again, but still worse than V18. Rust PnL came in at 13'159, with EMERALDS unchanged at 7'403 and TOMATOES falling from 5'888 to 5'756. That suggests the idea package is conceptually reasonable but still overconstrains TOMATOES, especially by delaying or reshaping profitable sell flow too much. The useful takeaway is not that the four ideas are invalid, but that they should probably be reintroduced one at a time on top of V18 rather than all in the same jump.
+PnL: Official N/A | Rust: 13'159
+
+V18.3 Isolated Tests:
+Works: Yes
+Improvement: Breaks the V18.2 idea bundle back into isolated V18 forks so each TOMATOES hypothesis can be tested fairly on top of the proven V18 base. The tested branches were: sell optimization only, two-horizon regression only, persistence only, and separate buy/sell thresholds only.
+Notes: This was a very clean readout. Three isolated ideas were effectively neutral locally: `Traderv18_3_sell.py`, `Traderv18_3_persistence.py`, and `Traderv18_3_thresholds.py` all tied the V18 baseline at 13'291 Rust PnL with the same product split and trade count. That suggests those changes either rarely activated or activated too mildly to move the local result. The only isolated idea that clearly mattered was two-horizon regression on its own, and it mattered in the wrong direction: `Traderv18_3_horizon.py` collapsed to 2'165 total Rust PnL, with TOMATOES dropping from 5'888 to -5'238. The main takeaway is that the V18 breakthrough is not coming from any one of these add-ons alone. It seems to come from the integrated regression alpha itself, while the attempted add-on refinements are either inert or too destabilizing when isolated.
+PnL: Sell 13'291 | Persistence 13'291 | Thresholds 13'291 | Two-Horizon 2'165
+
+V18.4 Exit Path:
+Works: Yes
+Improvement: Tests a narrower exit-optimization family on top of V18, without touching the TOMATOES regression entry model that already worked. The branches isolate three exit ideas: passive sell-quote lifting, aggressive sell-take restraint, and sliced smaller exits during still-bullish forecasts.
+Notes: This finally showed a clear directional path. Passive sell-quote lifting did nothing locally: `Traderv18_4_quote.py` tied the V18 baseline exactly at 13'291. Exit slicing also did nothing: `Traderv18_4_slice.py` also tied at 13'291. The only branch that improved was aggressive sell-take restraint. A soft version (`Traderv18_4_take_soft.py`) reached 13'304, and the best version (`Traderv18_4_take.py`, copied into `Traderv18_4.py`) reached 13'321, while a harder version (`Traderv18_4_take_hard.py`) fell back to 13'275. EMERALDS stayed unchanged at 7'403 in every case, so the whole path is TOMATOES-only. TOMATOES moved from 5'888 in V18 to 5'918 in the best exit branch. The practical lesson is strong: the next bit of edge does not seem to be in passive quote geometry or slicing, but in making aggressive sells slightly harder when the forecast is still supportive. This is the first exit-only family that actually improved on V18 locally.
+PnL: Baseline 13'291 | Quote 13'291 | Slice 13'291 | Take Soft 13'304 | Take Best 13'321 | Take Hard 13'275
+
+V19 Family:
+Works: Yes
+Improvement: Explores a new TOMATOES family built around predictive fair value plus more explicit market making. The idea was to move away from the V18/V18.4 taker-leaning regression style and test maker-first hybrids with narrower book-aware quoting, larger passive participation in clean spreads, and more selective taking.
+Notes: The family gave a clean negative result locally. `Traderv19.py`, the strongest maker-first attempt, dropped sharply to 12'022 Rust PnL with EMERALDS unchanged at 7'403 and TOMATOES falling to 4'619. That showed the pure maker-first shift gave up too much of the V18 regression edge. Two softer hybrids were then tested: `Traderv19_1.py`, which mostly added book-aware joining and larger passive participation, reached 13'185; and `Traderv19_2.py`, which combined the passive changes with a light taker holdback, reached 13'082. Both were still below V18 and V18.4. The useful takeaway is that TOMATOES does not currently want a broad shift toward market making. The predictive entry model is still the main edge, and the maker overlays tested here were not able to improve on it. If market making comes back later, it likely needs to be much lighter and subordinated to the existing regression signal rather than treated as a new primary style.
+PnL: V19 12'022 | V19.1 13'185 | V19.2 13'082
+
+V20:
+Works: Yes
+Improvement: Starts a new higher-risk TOMATOES family from the V18 line instead of the V19 market-making branch. EMERALDS stays frozen, while TOMATOES becomes more willing to carry trend inventory: wider target bands, lower inventory skew, lower trend threshold, bigger take size in confirmed trends, stronger target-position bias in fair value, and slower exits when the forecast still supports the move.
+Notes: The first local result is modest but encouraging. `Traderv20.py` reached 13'340 Rust PnL, beating both V18 at 13'291 and V18.4 at 13'321. EMERALDS stayed fixed at 7'403, so the whole gain came from TOMATOES, which improved from 5'918 in V18.4 to 5'937. Trade count fell slightly from 722 to 719, which is a good sign for this family: the improvement did not come from spraying more orders, but from holding or sizing TOMATOES trend exposure a bit more decisively. This is the first branch after V18 that supports the thesis that a riskier carry-oriented TOMATOES engine might open a new optimum instead of just adding tiny execution refinements.
+PnL: Official N/A | Rust: 13'340
+
+V20 Risk Sweep:
+Works: Yes
+Improvement: Runs the first dedicated sweep over the higher-risk TOMATOES carry family, instead of hand-tuning one aggressive branch at a time. The search focuses on the actual carry levers: inventory skew, take edge, passive size, max take size, trend thresholds, soft limit, position-bias strength, trend fair-value bonus, trend entry size bonus, and exit hold bonuses.
+Notes: This sweep confirmed that the V20 family has more headroom. Baseline V20 at 13'340 improved to a best local result of 13'431. The most important lesson is that the best risky carry setup was not the most extreme one. The winning region used easier trend activation and cheaper taking, but not the heaviest inventory carry: `BASE_TAKE_EDGE = 1.10`, `TREND_EDGE_THRESHOLD = 1.00`, `STRONG_TREND_EDGE = 2.50`, `FIT_THRESHOLD = 0.45`, and `SOFT_LIMIT_RATIO = 0.65`, while keeping `INVENTORY_SKEW = 0.035`, `MAX_TAKE_SIZE = 10`, and the existing trend hold bonuses. It also worked better with `PASSIVE_SIZE = 8` and `TREND_PASSIVE_PUSH = 0.0`, which suggests the family wants stronger directional conviction mainly through taking and target persistence, not through extra passive leaning. This is a useful structural result: the next optimum seems to come from faster commitment to a trend, not from the heaviest possible carry settings. Outputs live in `Analysis/output/v20_sweep_report.txt` and `Analysis/output/v20_sweep_results.csv`.
+PnL: Rust Sweep Best 13'431 | Baseline 13'340
+
+V20.1:
+Works: Yes
+Improvement: Clean upload-safe implementation of the best V20 risk-sweep result. It keeps EMERALDS unchanged and applies the winning TOMATOES carry settings directly into the bot defaults.
+Notes: Small but real improvement. Official PnL moved from 2'264.445 in V18 to 2'266.016. EMERALDS stayed unchanged at 1'050.0, so the gain came only from TOMATOES: 1'214.445 -> 1'216.016. This confirmed the riskier carry family works, but only marginally so far.
+PnL: Official 2'266.0 | Rust: 13'431
+
+V21:
+Works: Yes
+Improvement: First attempt at a much riskier TOMATOES engine built around breakout trend-following instead of the existing regression/carry family. The design introduces rolling breakout levels, volatility filters, ATR-style scaling, pyramiding, wide trailing stops, and a kill-switch layer. The second implementation softened the idea into a hybrid by falling back to the active V20.1 TOMATOES engine when no breakout state was live, so the branch could still trade day-to-day flow while trying to become more convex in strong moves.
+Notes: Clear negative result. Pure breakout ended at 7'290 Rust PnL with TOMATOES at -113. The hybrid fallback version was even worse at 7'105 with TOMATOES at -298. Conclusion: a pure breakout engine is too sparse and brittle for this market.
+PnL: Official N/A | Rust Pure 7'290 | Rust Hybrid 7'105
+
+V22:
+Works: Yes
+Improvement: Full switch to the opposite extreme of V21. EMERALDS stays unchanged, while TOMATOES becomes a maker-first mean-reversion / market-making engine with dynamic fair value, deviation-based target inventory, tighter recycling, and much lower willingness to carry trends.
+Notes: Good counter-model, but clearly weaker than the best carry family. Local Rust PnL reached 11'693 versus 13'431 for V20.1. EMERALDS stayed at 7'403, while TOMATOES came in at 4'290. The useful part is that V22 is active and stable, so it gives us a real opposite pole for a later V23 hybrid or interpolation sweep.
+PnL: Official N/A | Rust: 11'693
+
+V23:
+Works: Yes
+Improvement: First true hybrid between the V20.1 carry model and the V22 mean-reversion model for TOMATOES. It blends both target-position views and fair values into one shared execution layer.
+Notes: The first bridge did not find a good middle ground. Local Rust PnL was 9'657 with EMERALDS unchanged at 7'403 and TOMATOES only 2'254. A wider local blend sweep also came out flat, so this implementation is not expressing the blend strongly enough to create a useful new optimum.
+PnL: Official N/A | Rust: 9'657
+
+V23.1:
+Works: Yes
+Improvement: Regime-switch version of V23. Instead of blending every tick, TOMATOES now switches hard between the carry engine in directional states and the fade engine in range/stretch states.
+Notes: Also a miss. Local Rust PnL was 9'555 with EMERALDS unchanged at 7'403 and TOMATOES at 2'152. So a simple carry-versus-fade handoff did not solve the problem either and was slightly worse than the blended V23.
+PnL: Official N/A | Rust: 9'555
+
+EMERALDS Minimal MM Check:
+Works: Yes
+Improvement: Quick side test of a very simple EMERALDS maker: buy at `best_bid + 1`, sell at `best_ask - 1`, with no tiered taking or clearing logic.
+Notes: Simpler EMERALDS market making is viable, but not best. Local Rust total reached 12'981 with TOMATOES unchanged at 6'028, while EMERALDS fell from 7'403 to 6'953. So the minimal MM captures a lot of the edge, but the current EMERALDS engine still adds meaningful value.
+PnL: Rust: 12'981

@@ -30,6 +30,12 @@ Run the V18 regression-model sweep from the project root:
 python3 Analysis/v18_regression_sweep.py
 ```
 
+Run the V20 higher-risk TOMATOES carry sweep from the project root:
+
+```bash
+python3 Analysis/v20_risk_sweep.py
+```
+
 It writes human-readable reports to:
 
 ```bash
@@ -52,3 +58,5 @@ Main outputs:
 - `v17_coarse_results.csv`
 - `v18_sweep_report.txt`
 - `v18_sweep_results.csv`
+- `v20_sweep_report.txt`
+- `v20_sweep_results.csv`
