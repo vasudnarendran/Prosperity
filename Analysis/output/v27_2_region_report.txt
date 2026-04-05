@@ -1,0 +1,25 @@
+V27.2 regional continuation sweep
+
+Baseline v27.2-region Rust PnL: 14236 | EMERALDS 7403 | TOMATOES 6833 | trades 722
+
+Top results:
+- region_random_53: 14350 (delta +114, TOMATOES 6947, trades 722)
+- region_random_45: 14343 (delta +107, TOMATOES 6940, trades 722)
+- spread_heavy_plus: 14298 (delta +62, TOMATOES 6895, trades 722)
+- region_random_18: 14292 (delta +56, TOMATOES 6889, trades 722)
+- region_random_10: 14261 (delta +25, TOMATOES 6858, trades 722)
+- alpha_plus: 14238 (delta +2, TOMATOES 6835, trades 722)
+- baseline_v27_2_region: 14236 (delta +0, TOMATOES 6833, trades 722)
+- region_random_48: 14209 (delta -27, TOMATOES 6806, trades 722)
+- region_random_47: 14155 (delta -81, TOMATOES 6752, trades 721)
+- region_random_24: 14128 (delta -108, TOMATOES 6725, trades 725)
+
+Family summary:
+- baseline: best baseline_v27_2_region at 14236, average 14236, best delta +0
+- designed: best spread_heavy_plus at 14298, average 14034, best delta +62
+- random: best region_random_53 at 14350, average 14045, best delta +114
+
+Interpretation:
+- Best overall case: region_random_53 (random) at 14350.
+- This sweep focuses on the stronger v27.2 neighborhood instead of the older v27.1 region.
+- It is designed to show whether spread control, reservation control, or sell-patience style changes are still the strongest local driver once combined with the v27.2 baseline.
