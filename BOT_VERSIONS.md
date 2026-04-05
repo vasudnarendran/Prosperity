@@ -193,3 +193,9 @@ Works: Yes
 Improvement: Isolated which TOMATOES attributes are actually affected usefully by regime probabilities by testing temporary local variants off the V13.1 base.
 Notes: The local Rust sweep showed a surprisingly clean result. `take_edge` only, `MAX_TAKE_SIZE` only, and `take_edge + MAX_TAKE_SIZE` all tied the baseline at 10'046, meaning they were effectively neutral in this backtest. Any variant that included probability-based `PASSIVE_SIZE` dropped slightly to 10'043, which means that small size suppression was the only tested lever that measurably hurt TOMATOES. The main takeaway is that the current probability signals are too weak or too noisy to improve the strategy through these levers, and `PASSIVE_SIZE` is the most sensitive one in the wrong direction.
 PnL: Rust Sweep Best 10'046 | Worst 10'043
+
+V15:
+Works: Yes
+Improvement: Starts from the tied best V13.1 behavior, adds external parameter overrides so the same bot can be swept systematically, and then applies the best local layered settings back into the bot. The sweep tested EMERALDS and TOMATOES separately across fair-value, skew, edge, size, and regime-threshold parameters.
+Notes: This is the first version where the optimization workflow mattered as much as the strategy idea itself. The layered Rust sweep lifted local PnL from 10'046 to 10'326, and almost all of that gain came from TOMATOES while EMERALDS stayed flat at 4'902. The biggest positive shifts were lower TOMATOES inventory skew, higher TOMATOES take edge, higher TOMATOES momentum weight, and slightly larger TOMATOES passive size. EMERALDS was surprisingly stable: its best values stayed very close to the old baseline, which reinforces the view that EMERALDS is already near a local optimum while TOMATOES still has more room. The sweep outputs live in `Analysis/output/v15_sweep_report.txt` and `Analysis/output/v15_sweep_results.csv`.
+PnL: Official N/A | Rust: 10'326

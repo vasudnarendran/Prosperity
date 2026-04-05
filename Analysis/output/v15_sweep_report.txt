@@ -1,0 +1,144 @@
+V15 Parameter Sweep
+
+Method
+- Rust backtester on workspace day -1
+- Trader: Traderv15.py
+- Search style: layered coordinate sweep
+- Important note: use this for local direction, not as an official PnL estimate
+
+Baseline
+- Total: 10046.0
+- EMERALDS: 4902.0
+- TOMATOES: 5144.0
+
+Best Layered Result
+- Total: 10326.0
+- EMERALDS: 4902.0
+- TOMATOES: 5424.0
+- Trade count: 679
+- Overrides: {"EMERALDS": {"BASE_QUOTE_EDGE": 1.75, "BASE_TAKE_EDGE": 1.0, "INVENTORY_SKEW": 0.12, "MAX_QUOTE_EDGE": 4.0, "MAX_TAKE_SIZE": 10, "MICRO_WEIGHT": 0.0, "MID_WEIGHT": 0.2, "PASSIVE_SIZE": 7, "REFERENCE_PRICE": 10000.0, "REFERENCE_WEIGHT": 0.8, "SOFT_LIMIT_RATIO": 0.45}, "TOMATOES": {"BASE_QUOTE_EDGE": 2.25, "BASE_TAKE_EDGE": 1.5, "HISTORY_WEIGHT": 0.3, "IMBALANCE_WEIGHT": 0.7, "INVENTORY_SKEW": 0.06, "MAX_QUOTE_EDGE": 5.0, "MAX_TAKE_SIZE": 8, "MICRO_WEIGHT": 0.35, "MID_WEIGHT": 0.35, "MOMENTUM_WEIGHT": 0.3, "PASSIVE_SIZE": 8, "SOFT_LIMIT_RATIO": 0.55, "STRONG_TREND_THRESHOLD": 4.0, "TOXIC_MOMENTUM_THRESHOLD": 1.5, "TOXIC_SPREAD_THRESHOLD": 15.0, "TREND_IMBALANCE_THRESHOLD": 0.15, "TREND_THRESHOLD": 1.25}}
+
+Sensitivity Summary
+- EMERALDS most sensitive layer spread: EMERALDS passive size (152.0 total PnL spread)
+- TOMATOES most sensitive layer spread: TOMATOES inventory skew (202.0 total PnL spread)
+
+Layer 1: EMERALDS reference mix
+- Product focus: EMERALDS
+- Why it matters: Move anchor weight versus live mid weight.
+- Best value: 0.80 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 0.85 -> total 10015.0
+- Layer spread: 31.0
+- Applied going forward: 0.80
+
+Layer 2: EMERALDS inventory skew
+- Product focus: EMERALDS
+- Why it matters: How strongly EMERALDS inventory shifts fair value.
+- Best value: 0.12 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 0.10 -> total 9962.0
+- Layer spread: 84.0
+- Applied going forward: 0.12
+
+Layer 3: EMERALDS take edge
+- Product focus: EMERALDS
+- Why it matters: How cheap/rich EMERALDS must look before crossing.
+- Best value: 1 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 1.15 -> total 10016.0
+- Layer spread: 30.0
+- Applied going forward: 1
+
+Layer 4: EMERALDS quote edge
+- Product focus: EMERALDS
+- Why it matters: How far EMERALDS passive quotes sit from fair value.
+- Best value: 1.75 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 2.25 -> total 10046.0
+- Layer spread: 0.0
+- Applied going forward: 1.75
+
+Layer 5: EMERALDS passive size
+- Product focus: EMERALDS
+- Why it matters: Base size for passive EMERALDS quotes.
+- Best value: 7 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 6 -> total 9894.0
+- Layer spread: 152.0
+- Applied going forward: 7
+
+Layer 6: EMERALDS max take size
+- Product focus: EMERALDS
+- Why it matters: Maximum aggressive EMERALDS clip size.
+- Best value: 10 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 8 -> total 10003.0
+- Layer spread: 43.0
+- Applied going forward: 10
+
+Layer 7: EMERALDS soft limit ratio
+- Product focus: EMERALDS
+- Why it matters: When EMERALDS begins flattening more aggressively.
+- Best value: 0.45 -> total 10046.0 | EMERALDS 4902.0 | TOMATOES 5144.0
+- Worst value: 0.55 -> total 10046.0
+- Layer spread: 0.0
+- Applied going forward: 0.45
+
+Layer 8: TOMATOES inventory skew
+- Product focus: TOMATOES
+- Why it matters: How strongly TOMATOES inventory shifts fair value.
+- Best value: 0.06 -> total 10200.0 | EMERALDS 4902.0 | TOMATOES 5298.0
+- Worst value: 0.10 -> total 9998.0
+- Layer spread: 202.0
+- Applied going forward: 0.06
+
+Layer 9: TOMATOES take edge
+- Product focus: TOMATOES
+- Why it matters: How much edge TOMATOES needs before taking liquidity.
+- Best value: 1.50 -> total 10282.0 | EMERALDS 4902.0 | TOMATOES 5380.0
+- Worst value: 1.35 -> total 10200.0
+- Layer spread: 82.0
+- Applied going forward: 1.50
+
+Layer 10: TOMATOES quote edge
+- Product focus: TOMATOES
+- Why it matters: How wide TOMATOES passive quotes sit around fair value.
+- Best value: 2.25 -> total 10292.0 | EMERALDS 4902.0 | TOMATOES 5390.0
+- Worst value: 2 -> total 10282.0
+- Layer spread: 10.0
+- Applied going forward: 2.25
+
+Layer 11: TOMATOES passive size
+- Product focus: TOMATOES
+- Why it matters: Base passive TOMATOES size before regime scaling.
+- Best value: 8 -> total 10314.0 | EMERALDS 4902.0 | TOMATOES 5412.0
+- Worst value: 6 -> total 10282.0
+- Layer spread: 32.0
+- Applied going forward: 8
+
+Layer 12: TOMATOES max take size
+- Product focus: TOMATOES
+- Why it matters: Maximum aggressive TOMATOES clip size.
+- Best value: 8 -> total 10314.0 | EMERALDS 4902.0 | TOMATOES 5412.0
+- Worst value: 7 -> total 10302.0
+- Layer spread: 12.0
+- Applied going forward: 8
+
+Layer 13: TOMATOES momentum weight
+- Product focus: TOMATOES
+- Why it matters: How much short momentum shifts TOMATOES fair value.
+- Best value: 0.30 -> total 10326.0 | EMERALDS 4902.0 | TOMATOES 5424.0
+- Worst value: 0.10 -> total 10126.0
+- Layer spread: 200.0
+- Applied going forward: 0.30
+
+Layer 14: TOMATOES imbalance weight
+- Product focus: TOMATOES
+- Why it matters: How much top-of-book imbalance shifts TOMATOES fair value.
+- Best value: 0.70 -> total 10326.0 | EMERALDS 4902.0 | TOMATOES 5424.0
+- Worst value: 0.50 -> total 10225.0
+- Layer spread: 101.0
+- Applied going forward: 0.70
+
+Layer 15: TOMATOES trend threshold
+- Product focus: TOMATOES
+- Why it matters: How easily TOMATOES switches into a trend regime.
+- Best value: 1.25 -> total 10326.0 | EMERALDS 4902.0 | TOMATOES 5424.0
+- Worst value: 1.75 -> total 10326.0
+- Layer spread: 0.0
+- Applied going forward: 1.25
+
