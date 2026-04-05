@@ -1,0 +1,24 @@
+V27.1 broad continuation sweep
+
+Baseline v27.1 Rust PnL: 13956 | EMERALDS 7403 | TOMATOES 6553 | trades 721
+
+Top results:
+- broad_random_22: 14236 (delta +280, TOMATOES 6833, trades 722)
+- broad_random_36: 14171 (delta +215, TOMATOES 6768, trades 722)
+- broad_random_34: 14145 (delta +189, TOMATOES 6742, trades 722)
+- broad_random_19: 14134 (delta +178, TOMATOES 6731, trades 719)
+- broad_random_28: 14111 (delta +155, TOMATOES 6708, trades 722)
+- broad_random_25: 14066 (delta +110, TOMATOES 6663, trades 721)
+- broad_random_44: 14061 (delta +105, TOMATOES 6658, trades 720)
+- broad_random_33: 14054 (delta +98, TOMATOES 6651, trades 720)
+- broad_random_06: 14045 (delta +89, TOMATOES 6642, trades 718)
+- wide_mm: 14038 (delta +82, TOMATOES 6635, trades 721)
+
+Family summary:
+- designed: best wide_mm at 14038, average 13870, best delta +82
+- random: best broad_random_22 at 14236, average 13915, best delta +280
+
+Interpretation:
+- Best overall non-baseline case: broad_random_22 (random) at 14236.
+- Designed cases test more abstract control styles such as sell patience, gamma changes, and maker-vs-taker balance.
+- Random cases search a wider nearby region across alpha scaling, reservation control, spread control, and asymmetric trend behavior.

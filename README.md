@@ -17,27 +17,28 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 2'266
-Bot: Trader v20.1
+Record Total PnL: 2'293
+Bot: Trader v27
 
 Failed_Bot_Count: 5
 
 Current Best Notes:
-V20.1 is currently the best official bot.
-It keeps the V16 EMERALDS engine unchanged and extends the V18 regression family with a slightly riskier TOMATOES carry profile that improved total PnL only marginally, mainly through a bit better TOMATOES exit quality.
+V27 is currently the best official bot.
+It keeps the V16 EMERALDS engine unchanged and improves the V20.1 TOMATOES family with an HJB-style inventory and quote-control layer. The official gain came entirely from TOMATOES, while EMERALDS stayed fixed at its 1'050 profile.
 
 # Current Parameter Map:
-Based on [Traderv20_1.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv20_1.py), which is the current best official bot.
+Based on [Traderv27.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv27.py), which is the current best official bot.
 
 | Product | Fair Value | Inventory Skew | Take Logic | Quote Logic | Size Logic | Target / Bias |
 | --- | --- | --- | --- | --- | --- | --- |
 | `EMERALDS` | `0.80 * 10000 + 0.20 * mid` | `0.12` against current position | Tiered taking by distance from fair: small / medium / large clips, plus explicit clear orders near fair | Join or step-inside book-aware quotes using `disregard_edge`, `join_edge`, and `default_edge`, with early inventory leaning | Base order size `10`, larger on the side that helps flatten, smaller on the wrong side | Fixed-anchor market maker around `10000` with explicit inventory recycling |
-| `TOMATOES` | `0.25 * mid + 0.30 * micro + 0.25 * history + 0.20 * predicted_next + 0.35 * imbalance`, plus trend fair-value carry bonus | `0.035` against current position | Base take edge `1.10`, shifted by forecasted edge, fit quality, inventory, spread, volatility, and trend-carry bonuses | Base quote edge `2.25`, capped at `5.0`, widened in volatile/trending states | Passive size `8`, trend passive-size bonus `2`, max take size `10` | Predictive carry regime model with wider trend bands and slower trend exits |
+| `TOMATOES` | `0.25 * mid + 0.30 * micro + 0.25 * history + 0.20 * predicted_next + 0.35 * imbalance`, plus trend fair-value carry bonus | `0.035` against current position, then adjusted again through a reservation-price control layer | Base take edge `1.10`, shifted by forecasted edge, fit quality, inventory, spread, volatility, trend-carry bonuses, and control-layer hold adjustments | Base quote edge `2.25`, then widened or tightened by PDE/HJB-style spread control using volatility, inventory, and time | Passive size `8`, trend passive-size bonus `2`, max take size `10` | Predictive carry regime model with inventory-aware reservation price and adaptive quote-width control |
 
 Important candidate note:
 - `V20.1` is the new official best, but only by a very small margin over `V18`.
-- The official gain came from TOMATOES again, but this time more through slightly better sell quality than better entries.
-- `V18` is still the main structural breakthrough because it found the regression-based TOMATOES alpha family in the first place.
+- `V27` is now the official best and improved over `V20.1` by about `+27`.
+- The official gain came entirely from TOMATOES again, while EMERALDS stayed unchanged at `1'050`.
+- `V20.1` and `V18` remain the core structural breakthroughs because `V27` mainly improved the control layer on top of that TOMATOES family.
 
 Emeralds key levers:
 - `REFERENCE_WEIGHT = 0.80`
@@ -83,6 +84,17 @@ Tomatoes key levers:
 - `TREND_PASSIVE_PUSH = 0.0`
 - `TREND_PASSIVE_SIZE_BONUS = 2.0`
 - `TOXIC_VOLATILITY_THRESHOLD = 3.2`
+- `GAMMA_RANGE = 0.08`
+- `GAMMA_TREND = 0.04`
+- `GAMMA_VOLATILE = 0.14`
+- `RESERVATION_SCALE = 1.0`
+- `TREND_RESERVATION_BIAS = 0.35`
+- `RANGE_RESERVATION_BIAS = 0.15`
+- `SPREAD_VOL_COEF = 0.30`
+- `SPREAD_INV_COEF = 0.10`
+- `SPREAD_TIME_COEF = 0.35`
+- `HOLD_VOL_COEF = 0.18`
+- `HOLD_TIME_COEF = 0.12`
 
 Version Log:
 See [BOT_VERSIONS.md](/Users/xavierwinkelmann/Prosperity/BOT_VERSIONS.md)

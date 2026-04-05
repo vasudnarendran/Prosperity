@@ -36,6 +36,24 @@ Run the V20 higher-risk TOMATOES carry sweep from the project root:
 python3 Analysis/v20_risk_sweep.py
 ```
 
+Run the V27 PDE-style control sweep from the project root:
+
+```bash
+python3 Analysis/v27_pde_sweep.py
+```
+
+Run the V27 alpha and dynamic holding-limit sweep from the project root:
+
+```bash
+python3 Analysis/v27_alpha_hold_sweep.py
+```
+
+Run the broader V27.1 continuation sweep from the project root:
+
+```bash
+python3 Analysis/v27_1_broad_sweep.py
+```
+
 Train the offline TOMATOES ML model from the project root:
 
 ```bash
@@ -66,6 +84,12 @@ Main outputs:
 - `v18_sweep_results.csv`
 - `v20_sweep_report.txt`
 - `v20_sweep_results.csv`
+- `v27_pde_sweep_report.txt`
+- `v27_pde_sweep_results.csv`
+- `v27_alpha_hold_report.txt`
+- `v27_alpha_hold_results.csv`
+- `v27_1_broad_sweep_report.txt`
+- `v27_1_broad_sweep_results.csv`
 - `tomatoes_offline_model_report.txt`
 - `tomatoes_offline_model_best_mse.json`
 - `tomatoes_offline_model_best_proxy.json`

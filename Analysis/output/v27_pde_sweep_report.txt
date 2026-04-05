@@ -1,0 +1,25 @@
+V27 PDE-style control sweep
+
+Baseline v27 Rust PnL: 13674 | EMERALDS 7403 | TOMATOES 6271 | trades 721
+
+Top results:
+- spread_strong: 13877 (delta +203, TOMATOES 6474, trades 721)
+- spread_take: 13827 (delta +153, TOMATOES 6424, trades 720)
+- all_control_aggressive: 13794 (delta +120, TOMATOES 6391, trades 720)
+- reservation_off: 13780 (delta +106, TOMATOES 6377, trades 721)
+- all_control_light: 13742 (delta +68, TOMATOES 6339, trades 721)
+- hold_soft: 13711 (delta +37, TOMATOES 6308, trades 721)
+
+Area summary:
+- reservation: best reservation_off at 13780, average 13741, best delta +106
+- spread: best spread_strong at 13877, average 13519, best delta +203
+- take: best take_soft at 13687, average 13652, best delta +13
+- hold: best hold_soft at 13711, average 13684, best delta +37
+- combo: best spread_take at 13827, average 13746, best delta +153
+
+Interpretation:
+- Best overall non-baseline case: spread_strong (spread) at 13877.
+- Reservation area tests how much the PDE-style value function should shift the center price.
+- Spread area tests where PDE control should widen or narrow the quoting band.
+- Take area tests whether volatility/time/inventory should move aggressive crossing thresholds.
+- Hold area tests whether time/volatility-aware continuation bonuses help exits.

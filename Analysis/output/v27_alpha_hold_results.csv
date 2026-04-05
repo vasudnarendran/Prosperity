@@ -1,0 +1,11 @@
+label,area,total,emeralds,tomatoes,trade_count
+baseline_v27,baseline,13674.00,7403.00,6271.00,721
+alpha_light,alpha,13721.00,7403.00,6318.00,721
+alpha_strong,alpha,13707.00,7403.00,6304.00,722
+alpha_defensive,alpha,13692.00,7403.00,6289.00,720
+hold_dynamic_light,hold_limit,13674.00,7403.00,6271.00,721
+hold_dynamic_strong,hold_limit,13674.00,7403.00,6271.00,721
+hold_dynamic_wide,hold_limit,13674.00,7403.00,6271.00,721
+alpha_light_hold_light,combo,13721.00,7403.00,6318.00,721
+alpha_strong_hold_strong,combo,13707.00,7403.00,6304.00,722
+alpha_defensive_hold_wide,combo,13692.00,7403.00,6289.00,720

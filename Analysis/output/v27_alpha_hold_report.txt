@@ -1,0 +1,16 @@
+V27 alpha and dynamic holding-limit sweep
+
+Baseline v27 Rust PnL: 13674 | EMERALDS 7403 | TOMATOES 6271 | trades 721
+
+Top results:
+- alpha_light: 13721 (delta +47, TOMATOES 6318, trades 721)
+- alpha_light_hold_light: 13721 (delta +47, TOMATOES 6318, trades 721)
+- alpha_strong: 13707 (delta +33, TOMATOES 6304, trades 722)
+- alpha_strong_hold_strong: 13707 (delta +33, TOMATOES 6304, trades 722)
+- alpha_defensive: 13692 (delta +18, TOMATOES 6289, trades 720)
+- alpha_defensive_hold_wide: 13692 (delta +18, TOMATOES 6289, trades 720)
+
+Area summary:
+- alpha: best alpha_light at 13721, average 13707, best delta +47
+- hold_limit: best hold_dynamic_light at 13674, average 13674, best delta +0
+- combo: best alpha_light_hold_light at 13721, average 13707, best delta +47

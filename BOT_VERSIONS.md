@@ -355,3 +355,45 @@ Works: Yes
 Improvement: Offline-trained TOMATOES model on top of V20.1. The model is fitted on day -2 price data and adds a short-horizon forecast for immediate edge plus a longer-horizon directional forecast for carry/hold bias, while EMERALDS stays unchanged.
 Notes: Good local lift, weak official transfer. Rust improved from 13'431 to 13'556, but official PnL slipped from 2'266.016 to 2'259.445. EMERALDS stayed identical at 1'050.0; the miss came entirely from TOMATOES. Buys improved a bit, but sells got much worse because the offline model traded more and gave back exit quality.
 PnL: Official 2'259.4 | Rust 13'556
+
+V26:
+Works: Yes
+Improvement: Physics-assisted TOMATOES hybrid on top of the V20.1 base. Uses slow-fair displacement, velocity, acceleration, order-book force, and a Peclet-style drift-vs-noise score to bias the existing carry engine rather than replace it.
+Notes: The pure physics rewrite was a complete miss locally, but the best hybrid recovered to a stable result. EMERALDS stayed unchanged at 7'403 and TOMATOES came in at 5'869, still below V20.1's 6'028. Useful conceptually, but not a better bot yet.
+PnL: Official N/A | Rust 13'272
+
+V27:
+Works: Yes
+Improvement: Keeps the V20.1 TOMATOES alpha and regime logic, but replaces part of the execution/control layer with an HJB-style reservation-price model. Inventory, volatility, and time remaining now adjust the reservation price and quote width instead of only using fixed skew rules.
+Notes: Strong local result and a real official improvement. Rust PnL improved from 13'431 to 13'674. On the official site, V27 reached about 2'292.9, beating V20.1's 2'266.0. EMERALDS stayed unchanged at 1'050, so the whole gain came from TOMATOES.
+PnL: Official 2'292.9 | Rust 13'674
+
+V27 PDE Sweep:
+Works: Yes
+Improvement: Tests where PDE-style control helps most inside the V27 family: reservation price, quote spread, take thresholds, hold bonuses, and combinations of them.
+Notes: The biggest lever was quote-spread control. `spread_strong` was best at 13'877, moving TOMATOES from 6'271 to 6'474 with the same 721 trades. Reservation control mattered too, but the best reservation result came from turning most of it off, which suggests V27's reservation shift is too strong while its spread control is still underused. Take control was mostly noise, and hold control helped only a little.
+PnL: Best Rust 13'877 | Baseline 13'674
+
+V27 Alpha/Hold Sweep:
+Works: Yes
+Improvement: Tests a continuation of V27 in two directions: adjusting the alpha region itself and replacing the fixed TOMATOES soft inventory bound with a regime-aware dynamic holding limit that still stays below the hard cap of 80.
+Notes: Alpha mattered a little; dynamic holding limits did not. `alpha_light` was best at 13'721, improving TOMATOES from 6'271 to 6'318 with the same 721 trades. All three dynamic holding-limit variants tied the V27 baseline exactly, so the current target/quote logic is not really constrained by that soft bound yet.
+PnL: Best Rust 13'721 | Baseline 13'674
+
+V27.1:
+Works: Yes
+Improvement: Combines the two best V27 continuation levers: stronger PDE-style spread control and the light alpha-region boost.
+Notes: Best local V27 continuation so far. Rust PnL improved from 13'674 to 13'881 with EMERALDS unchanged at 7'403 and TOMATOES improving from 6'271 to 6'478. Trade count stayed fixed at 721, so the gain still looks like cleaner control and better TOMATOES pricing rather than extra activity.
+PnL: Official N/A | Rust 13'881
+
+V27.1 Broad Sweep:
+Works: Yes
+Improvement: Much wider continuation search around V27.1 across alpha scaling, reservation control, spread control, gamma/risk settings, and asymmetric trend-hold behavior.
+Notes: This broader search found a meaningfully better local region than the earlier hand-picked sweeps. Best result was `broad_random_22` at 14'236 Rust PnL, driven entirely by TOMATOES at 6'833. The strongest pattern was: wider control-layer spreads, heavier reservation scaling, stronger imbalance use, and extra trend-side sell patience.
+PnL: Best Rust 14'236 | Baseline 13'956
+
+V27.2:
+Works: Yes
+Improvement: Clean upload-safe continuation of V27.1 using the best broad-sweep direction: stronger spread control, stronger reservation scaling, a lighter alpha edge multiplier, heavier imbalance scaling, and extra TOMATOES trend-side sell patience.
+Notes: Positive local continuation, though not a full reproduction of the sweep winner. Rust PnL reached 14'016 with EMERALDS unchanged at 7'403 and TOMATOES at 6'613. That is above V27.1, so the broad search found a real improvement path, but there is still some gap between the local sweep bot and the clean upload candidate.
+PnL: Official N/A | Rust 14'016
