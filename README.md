@@ -17,43 +17,50 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 1'850
-Bot: Trader v11.3 / v13.1
+Record Total PnL: 2'185
+Bot: Trader v16
 
 Failed_Bot_Count: 5
 
 Current Best Notes:
-V11.3 and V13.1 currently tie as the best official bots.
-They keep the strong TOMATOES engine from V9 and improve EMERALDS by using a more selective, higher-quality trade profile.
+V16 is currently the best official bot.
+It keeps the V15 TOMATOES engine unchanged and unlocks the missing EMERALDS edge through tiered taking, explicit clearing, earlier inventory pressure, and more decisive passive placement.
 
 Current Parameter Map:
-Based on [Traderv13_1.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv13_1.py), which matches the tied best official behavior.
+Based on [Traderv16.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv16.py), which is the current best official bot.
 
 | Product | Fair Value | Inventory Skew | Take Logic | Quote Logic | Size Logic | Target / Bias |
 | --- | --- | --- | --- | --- | --- | --- |
-| `EMERALDS` | `0.80 * 10000 + 0.20 * mid` | `0.12` against current position | Base take edge `1.00`, widened in wide spreads, easier buys when short, easier sells when long | Base quote edge `2.0`, capped at `4.0`, tightened when book touches `10000`, quotes lean toward flattening near soft limit | Passive size `7`, larger in wide spreads, larger on the side that helps flatten inventory | Fixed-anchor market maker around `10000` |
-| `TOMATOES` | `0.35 * mid + 0.35 * micro + 0.30 * history + 0.20 * momentum + 0.70 * imbalance` | `0.08` against current position | Base take edge `1.35`, shifted by regime, inventory, spread, and toxicity | Base quote edge `2.0`, capped at `5.0`, widened in toxic/trending states | Passive size `7`, reduced in toxic/trending states, then adjusted by inventory and toxicity | Regime-driven: `trend_up`, `trend_down`, `mean_revert`, `toxic` |
+| `EMERALDS` | `0.80 * 10000 + 0.20 * mid` | `0.12` against current position | Tiered taking by distance from fair: small / medium / large clips, plus explicit clear orders near fair | Join or step-inside book-aware quotes using `disregard_edge`, `join_edge`, and `default_edge`, with early inventory leaning | Base order size `10`, larger on the side that helps flatten, smaller on the wrong side | Fixed-anchor market maker around `10000` with explicit inventory recycling |
+| `TOMATOES` | `0.35 * mid + 0.35 * micro + 0.30 * history + 0.30 * momentum + 0.70 * imbalance` | `0.06` against current position | Base take edge `1.50`, shifted by regime, inventory, spread, and toxicity | Base quote edge `2.25`, capped at `5.0`, widened in toxic/trending states | Passive size `8`, reduced in toxic/trending states, then adjusted by inventory and toxicity | Regime-driven: `trend_up`, `trend_down`, `mean_revert`, `toxic` |
 
 Emeralds key levers:
 - `REFERENCE_WEIGHT = 0.80`
 - `INVENTORY_SKEW = 0.12`
-- `BASE_TAKE_EDGE = 1.00`
-- `BASE_QUOTE_EDGE = 2.0`
-- `MAX_TAKE_SIZE = 10`
-- `PASSIVE_SIZE = 7`
-- `soft_limit = 40`
+- `TAKE_TIER_1_DISTANCE = 1`
+- `TAKE_TIER_2_DISTANCE = 4`
+- `TAKE_TIER_3_DISTANCE = 8`
+- `TAKE_TIER_1_SIZE = 6`
+- `TAKE_TIER_2_SIZE = 12`
+- `TAKE_TIER_3_SIZE = 20`
+- `CLEAR_WIDTH = 0`
+- `BASE_ORDER_SIZE = 10`
+- `DISREGARD_EDGE = 2`
+- `JOIN_EDGE = 1`
+- `DEFAULT_EDGE = 8`
+- `soft_limit = 20`
 
 Tomatoes key levers:
 - `MID_WEIGHT = 0.35`
 - `MICRO_WEIGHT = 0.35`
 - `HISTORY_WEIGHT = 0.30`
-- `MOMENTUM_WEIGHT = 0.20`
+- `MOMENTUM_WEIGHT = 0.30`
 - `IMBALANCE_WEIGHT = 0.70`
-- `INVENTORY_SKEW = 0.08`
-- `BASE_TAKE_EDGE = 1.35`
-- `BASE_QUOTE_EDGE = 2.0`
+- `INVENTORY_SKEW = 0.06`
+- `BASE_TAKE_EDGE = 1.50`
+- `BASE_QUOTE_EDGE = 2.25`
 - `MAX_QUOTE_EDGE = 5.0`
-- `PASSIVE_SIZE = 7`
+- `PASSIVE_SIZE = 8`
 - `MAX_TAKE_SIZE = 8`
 
 Version Log:

@@ -15,7 +15,7 @@ from typing import Callable, Dict, List
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
-TRADER_PATH = WORKSPACE_ROOT / "Bots" / "Traderv15.py"
+TRADER_PATH = WORKSPACE_ROOT / "Bots" / "Traderv15_local.py"
 BOT_DIR = WORKSPACE_ROOT / "Bots"
 BACKTESTER = WORKSPACE_ROOT / "ProsperityRustBacktester" / "target" / "debug" / "rust_backtester"
 OUTPUT_DIR = WORKSPACE_ROOT / "Analysis" / "output"
