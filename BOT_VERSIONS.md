@@ -163,3 +163,33 @@ Works: Yes
 Improvement: Adds timestamp-aware phases to the V11.3 foundation: more aggressive sizing and tighter edges early, normal behavior in the middle, and more passive / lower-inventory behavior late in the run.
 Notes: Mixed result in the local Rust backtester. TOMATOES improved noticeably, but EMERALDS weakened enough that total PnL fell below the V11.3 high. That suggests the general idea may have some signal, especially for TOMATOES, but the late-session passive shift is currently too blunt and is giving up too much EMERALDS edge.
 PnL: Official N/A | Rust: 9'929
+
+V13:
+Works: Yes
+Improvement: Prosperity 3-inspired branch. EMERALDS was rebuilt toward a simpler static anchor market maker, while TOMATOES was pushed toward a more explicit Kelp-style dynamic trader with half-limit position bands and stronger directional leaning.
+Notes: The concepts transferred less cleanly than expected. The official-site result came in at about 1'566, which is far below V11.3's 1'850. Both products got worse: EMERALDS fell from 739 to 639 and TOMATOES fell from 1'111.6 to 927.3. The trade profile explains why: V13 overtraded EMERALDS at worse prices, buying 120 instead of 90 units at a much worse average price and also selling at weaker prices; TOMATOES also got worse on both sides with fewer sells and worse buys. The local Rust backtester had already shown weakness at 9'301, and the official result confirms the direct Prosperity 3 behavior copy is too blunt for this round. The useful takeaway is still structural: keep the architecture ideas, but preserve our proven V11.3 behavior.
+PnL: Official 1'566 | Rust: 9'301
+
+V13.1:
+Works: Yes
+Improvement: Keeps the Prosperity 3-style base structure and clearer take-versus-make separation, but restores the actual EMERALDS and TOMATOES trading behavior much closer to V11.3.
+Notes: Strong local recovery and a useful official confirmation. In the Rust backtester V13.1 reached 10'046, beating both V11.3's 9'998 and V13's 9'301. On the official site, however, V13.1 tied V11.3 exactly at about 1'850.6, with the same product split and the same trade profile. That means the structural cleanup did not create a new official edge yet, but it also did not hurt performance. The important takeaway is that the Prosperity 3-style structure appears safe as long as the profitable V11.3 behavior is preserved.
+PnL: Official 1'850.6 (tie with V11.3) | Rust: 10'046
+
+V14:
+Works: Yes
+Improvement: Starts from the V13.1 structure and introduces a probability-based TOMATOES regime model. Instead of hard switching only between trend and mean reversion, it estimates soft probabilities for trend, range, and high-volatility states from recent mid-price slope, momentum, imbalance, realized volatility, spread, and drawdown. Those probabilities then scale target position, edges, passive size, and a soft kill switch.
+Notes: The official result confirms this branch is too cautious in practice. It finished at about 1'566.9, far below the 1'850.6 tie from V11.3 and V13.1. EMERALDS was unchanged, which is actually useful: it stayed exactly at 739 with the same trade profile, so the probability layer did not damage the stable anchor trader. The entire loss came from TOMATOES, which fell from 1'111.6 to 827.9. The trade profile shows why: the bot traded TOMATOES much less, buying only 98 instead of 124 units and selling only 93 instead of 109. Sell prices were slightly better on average, but buy prices were worse and the strategy simply gave up too much good flow. The takeaway is that regime probabilities may still help, but only as a very light sizing or edge modifier on the existing TOMATOES engine, not as a broader gating layer.
+PnL: Official 1'566.9 | Rust: 9'552
+
+V14.1:
+Works: Yes
+Improvement: Keeps the V13.1 decision flow and uses regime probabilities only as small TOMATOES nudges on three levers: `MAX_TAKE_SIZE`, `PASSIVE_SIZE`, and `take_edge`.
+Notes: This is much closer to the right use of probabilities. In the local Rust backtester V14.1 recovered to 10'043, almost exactly back to V13.1's 10'046. EMERALDS stayed unchanged at 4'902, and TOMATOES recovered to 5'141 versus V13.1's 5'144. So the lighter probability layer no longer chokes off good flow. It still has not shown a clear improvement locally, but it is now safe enough to justify an official-site test.
+PnL: Official N/A | Rust: 10'043
+
+V14.x Attribute Sweep:
+Works: Yes
+Improvement: Isolated which TOMATOES attributes are actually affected usefully by regime probabilities by testing temporary local variants off the V13.1 base.
+Notes: The local Rust sweep showed a surprisingly clean result. `take_edge` only, `MAX_TAKE_SIZE` only, and `take_edge + MAX_TAKE_SIZE` all tied the baseline at 10'046, meaning they were effectively neutral in this backtest. Any variant that included probability-based `PASSIVE_SIZE` dropped slightly to 10'043, which means that small size suppression was the only tested lever that measurably hurt TOMATOES. The main takeaway is that the current probability signals are too weak or too noisy to improve the strategy through these levers, and `PASSIVE_SIZE` is the most sensitive one in the wrong direction.
+PnL: Rust Sweep Best 10'046 | Worst 10'043
