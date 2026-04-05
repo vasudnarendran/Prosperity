@@ -353,5 +353,5 @@ PnL: Official N/A | Rust: 13'431
 V25.1:
 Works: Yes
 Improvement: Offline-trained TOMATOES model on top of V20.1. The model is fitted on day -2 price data and adds a short-horizon forecast for immediate edge plus a longer-horizon directional forecast for carry/hold bias, while EMERALDS stays unchanged.
-Notes: First ML branch with a real local lift. Rust PnL reached 13'556 versus 13'431 for V20.1. EMERALDS stayed fixed at 7'403, while TOMATOES improved from 6'028 to 6'153. Trade count rose slightly to 732. Promising, but still only trained on one local day, so this needs cautious interpretation.
-PnL: Official N/A | Rust: 13'556
+Notes: Good local lift, weak official transfer. Rust improved from 13'431 to 13'556, but official PnL slipped from 2'266.016 to 2'259.445. EMERALDS stayed identical at 1'050.0; the miss came entirely from TOMATOES. Buys improved a bit, but sells got much worse because the offline model traded more and gave back exit quality.
+PnL: Official 2'259.4 | Rust 13'556
