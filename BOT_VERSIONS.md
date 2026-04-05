@@ -133,3 +133,33 @@ Works: Yes
 Improvement: First explicitly product-specialized architecture for Prosperity 4, with a shared base trader, a dedicated EMERALDS module based on selective anchor-style market making, and a dedicated TOMATOES module based on regime/state behavior.
 Notes: The modular design held up well, but it did not beat the current best. The result landed at roughly the same level as V8, with essentially the same trade profile and product split: TOMATOES stayed strong while EMERALDS remained weaker than the old V6.2 peak. That suggests the architecture is promising for future development, but the product modules still need new alpha rather than just cleaner structure.
 PnL: 1'794
+
+V11:
+Works: Yes
+Improvement: Keeps the modular V10 structure but retunes only the EMERALDS module toward a stricter, more selective V6.2-style anchor trader while leaving TOMATOES unchanged.
+Notes: This recovered a large part of the V10 gap in local Rust backtests and confirmed that EMERALDS is the right place to keep tuning. The first V11 local Rust run reached 9'971, which was clearly better than V10's 9'783 but still below V9's 9'992 in the same backtester.
+PnL: Official N/A | Rust: 9'971
+
+V11.x Search:
+Works: Yes
+Improvement: Small EMERALDS-only search around V11, testing more exact V6.2 soft-limit handling plus asymmetric tweaks for avoiding weak 10000 buys and leaning harder into sells above the anchor.
+Notes: The best local Rust variants were V11.3, V11.5, V11.6, and V11.7, all tying at 9'998. The official-site result for V11.3 then validated the direction and became a new overall high score at about 1'850. The key insight is that V11.3 kept TOMATOES identical to the strong V9 engine while restoring EMERALDS to a much more V6.2-like trade profile: fewer EMERALDS trades, better average buy price, and stronger concentration in the high-value 10004-10006 sell region.
+PnL: Official Best 1'850 | Rust Best: 9'998
+
+V11.8:
+Works: Yes
+Improvement: Tests the hard-filter idea of blocking EMERALDS buys at exactly 10000 while keeping the stronger V11.3-style sell behavior.
+Notes: Bad result. The local Rust score dropped sharply to 9'050, with the entire damage coming from EMERALDS. That strongly suggests the 10000 buys are not just low-quality noise; they are still important for inventory recycling and staying engaged in the anchor state. A full hard block is too aggressive.
+PnL: Official N/A | Rust: 9'050
+
+V11.9:
+Works: Yes
+Improvement: Softer version of the 10000-buy filter idea, keeping the V11.3 structure but allowing EMERALDS buys at 10000 only at reduced size instead of blocking them completely.
+Notes: Still worse than the best V11.x variants. The local Rust score fell to 9'930, which is much better than the hard block in V11.8 but still clearly below the 9'998 plateau. This suggests the anchor-state 10000 buys are not only useful to have, but are probably too important to shrink aggressively.
+PnL: Official N/A | Rust: 9'930
+
+V12:
+Works: Yes
+Improvement: Adds timestamp-aware phases to the V11.3 foundation: more aggressive sizing and tighter edges early, normal behavior in the middle, and more passive / lower-inventory behavior late in the run.
+Notes: Mixed result in the local Rust backtester. TOMATOES improved noticeably, but EMERALDS weakened enough that total PnL fell below the V11.3 high. That suggests the general idea may have some signal, especially for TOMATOES, but the late-session passive shift is currently too blunt and is giving up too much EMERALDS edge.
+PnL: Official N/A | Rust: 9'929

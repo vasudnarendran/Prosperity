@@ -17,14 +17,14 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 1'800
-Bot: Trader v9
+Record Total PnL: 1'850
+Bot: Trader v11.3
 
 Failed_Bot_Count: 5
 
 Current Best Notes:
-V9 is the current record bot.
-It improved both TOMATOES and EMERALDS slightly over V8 without changing the overall trade profile too aggressively.
+V11.3 is the current record bot.
+It kept the strong TOMATOES engine from V9 and improved EMERALDS by returning to a more selective, higher-quality trade profile.
 
 Version Log:
 See [BOT_VERSIONS.md](/Users/xavierwinkelmann/Prosperity/BOT_VERSIONS.md)
