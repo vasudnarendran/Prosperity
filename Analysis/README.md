@@ -12,6 +12,12 @@ Run the layered V15 parameter sweep from the project root:
 python3 Analysis/v15_parameter_sweep.py
 ```
 
+Run the V17 microstructure sweep from the project root:
+
+```bash
+python3 Analysis/v17_micro_sweep.py
+```
+
 It writes human-readable reports to:
 
 ```bash
@@ -28,3 +34,5 @@ Main outputs:
 - `results_report.txt`
 - `v15_sweep_report.txt`
 - `v15_sweep_results.csv`
+- `v17_sweep_report.txt`
+- `v17_sweep_results.csv`

@@ -434,13 +434,14 @@ class TomatoesTrader(BaseProductTrader):
         return band_1, band_2, band_3
 
     def target_band(self, regime: str) -> Tuple[int, int]:
+        band_1, band_2, band_3 = self.trend_soft_bands()
         if regime == "trend_up":
-            return (20, 36) if self.momentum >= self.STRONG_TREND_THRESHOLD else (10, 26)
+            return (band_2, band_3) if self.momentum >= self.STRONG_TREND_THRESHOLD else (band_1, band_2)
         if regime == "trend_down":
-            return (-36, -20) if self.momentum <= -self.STRONG_TREND_THRESHOLD else (-26, -10)
+            return (-band_3, -band_2) if self.momentum <= -self.STRONG_TREND_THRESHOLD else (-band_2, -band_1)
         if regime == "toxic":
             return -8, 8
-        return -10, 10
+        return -band_1 // 2, band_1 // 2
 
     def target_position(self, regime: str) -> int:
         lower, upper = self.target_band(regime)
@@ -538,20 +539,20 @@ class TomatoesTrader(BaseProductTrader):
         buy_quote, sell_quote = self.clamp_inside_spread(buy_quote, sell_quote)
 
         position = self.projected_position()
-        band_1, band_2, _band_3 = self.trend_soft_bands()
+        band_1, band_2, band_3 = self.trend_soft_bands()
         if regime == "trend_up":
             if buy_quote is not None and position < target_position:
                 buy_quote = min(int(self.best_ask) - 1, max(int(self.best_bid) + 1, buy_quote + 1))
-            if position < band_1:
+            if position < band_2:
                 sell_quote = None
-            elif position < band_2 and sell_quote is not None:
+            elif position < band_3 and sell_quote is not None:
                 sell_quote += 1
         elif regime == "trend_down":
             if sell_quote is not None and position > target_position:
                 sell_quote = max(int(self.best_bid) + 1, min(int(self.best_ask) - 1, sell_quote - 1))
-            if position > -band_1:
+            if position > -band_2:
                 buy_quote = None
-            elif position > -band_2 and buy_quote is not None:
+            elif position > -band_3 and buy_quote is not None:
                 buy_quote -= 1
         elif regime == "toxic" and abs(position) <= 6:
             buy_quote = None
@@ -579,39 +580,35 @@ class TomatoesTrader(BaseProductTrader):
             elif position >= 20:
                 size = max(1, size - 2)
             if regime == "trend_down":
-                if position > -band_1:
+                if position > -band_2:
                     size = max(1, size - 4)
-                elif position > -band_2:
-                    size = max(1, size - 2)
                 elif position > -band_3:
-                    size = max(1, size - 1)
+                    size = max(1, size - 2)
         else:
             if position >= 20:
                 size += 1
             elif position <= -20:
                 size = max(1, size - 2)
             if regime == "trend_up":
-                if position < band_1:
+                if position < band_2:
                     size = max(1, size - 4)
-                elif position < band_2:
-                    size = max(1, size - 2)
                 elif position < band_3:
-                    size = max(1, size - 1)
+                    size = max(1, size - 2)
 
         return size
 
     def allow_passive(self, side: str, regime: str) -> bool:
         position = self.projected_position()
-        band_1, _band_2, _band_3 = self.trend_soft_bands()
+        _band_1, band_2, _band_3 = self.trend_soft_bands()
         if side == "BUY" and position >= self.soft_limit:
             return False
         if side == "SELL" and position <= -self.soft_limit:
             return False
         if regime == "toxic" and abs(position) <= 6:
             return False
-        if regime == "trend_up" and side == "SELL" and position < band_1:
+        if regime == "trend_up" and side == "SELL" and position < band_2:
             return False
-        if regime == "trend_down" and side == "BUY" and position > -band_1:
+        if regime == "trend_down" and side == "BUY" and position > -band_2:
             return False
         return True
 
@@ -620,20 +617,20 @@ class TomatoesTrader(BaseProductTrader):
         band_1, band_2, band_3 = self.trend_soft_bands()
 
         if regime == "trend_up" and side == "SELL":
-            if position < band_1:
-                return 0
             if position < band_2:
-                return int(self.TREND_EXIT_SLICE_SMALL)
+                return 0
             if position < band_3:
+                return int(self.TREND_EXIT_SLICE_SMALL)
+            if position < self.soft_limit:
                 return int(self.TREND_EXIT_SLICE_MEDIUM)
             return int(self.TREND_EXIT_SLICE_LARGE)
 
         if regime == "trend_down" and side == "BUY":
-            if position > -band_1:
-                return 0
             if position > -band_2:
-                return int(self.TREND_EXIT_SLICE_SMALL)
+                return 0
             if position > -band_3:
+                return int(self.TREND_EXIT_SLICE_SMALL)
+            if position > -self.soft_limit:
                 return int(self.TREND_EXIT_SLICE_MEDIUM)
             return int(self.TREND_EXIT_SLICE_LARGE)
 

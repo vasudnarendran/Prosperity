@@ -1,0 +1,27 @@
+run_id,label,tested_value,total_pnl,emeralds_pnl,tomatoes_pnl,trade_count
+v17-baseline,baseline,defaults,12613.0,7403.0,5210.0,726
+v17-l1-pressure-micro-coefficient-0p25,pressure micro coefficient,0.25,12669.0,7403.0,5266.0,724
+v17-l1-pressure-micro-coefficient-0p60,pressure micro coefficient,0.60,12694.0,7403.0,5291.0,724
+v17-l1-pressure-micro-coefficient-1,pressure micro coefficient,1,12613.0,7403.0,5210.0,726
+v17-l2-pressure-short-momentum-coefficient-0p10,pressure short momentum coefficient,0.10,12445.0,7403.0,5042.0,724
+v17-l2-pressure-short-momentum-coefficient-0p20,pressure short momentum coefficient,0.20,12528.0,7403.0,5125.0,725
+v17-l2-pressure-short-momentum-coefficient-0p35,pressure short momentum coefficient,0.35,12694.0,7403.0,5291.0,724
+v17-l3-pressure-imbalance-coefficient-0p60,pressure imbalance coefficient,0.60,12565.0,7403.0,5162.0,725
+v17-l3-pressure-imbalance-coefficient-1p20,pressure imbalance coefficient,1.20,12650.0,7403.0,5247.0,725
+v17-l3-pressure-imbalance-coefficient-1p80,pressure imbalance coefficient,1.80,12694.0,7403.0,5291.0,724
+v17-l4-pressure-fair-bonus-0p15,pressure fair bonus,0.15,12720.0,7403.0,5317.0,718
+v17-l4-pressure-fair-bonus-0p40,pressure fair bonus,0.40,12584.0,7403.0,5181.0,721
+v17-l4-pressure-fair-bonus-0p80,pressure fair bonus,0.80,12694.0,7403.0,5291.0,724
+v17-l5-pressure-edge-bonus-0,pressure edge bonus,0,12810.0,7403.0,5407.0,714
+v17-l5-pressure-edge-bonus-0p08,pressure edge bonus,0.08,12723.0,7403.0,5320.0,716
+v17-l5-pressure-edge-bonus-0p20,pressure edge bonus,0.20,12720.0,7403.0,5317.0,718
+v17-l6-pressure-quote-threshold-0p90,pressure quote threshold,0.90,12818.0,7403.0,5415.0,714
+v17-l6-pressure-quote-threshold-1p20,pressure quote threshold,1.20,12820.0,7403.0,5417.0,714
+v17-l6-pressure-quote-threshold-1p60,pressure quote threshold,1.60,12826.0,7403.0,5423.0,714
+v17-l7-tomatoes-base-quote-edge-2,tomatoes base quote edge,2,12816.0,7403.0,5413.0,714
+v17-l7-tomatoes-base-quote-edge-2p25,tomatoes base quote edge,2.25,12826.0,7403.0,5423.0,714
+v17-l7-tomatoes-base-quote-edge-2p50,tomatoes base quote edge,2.50,12830.0,7403.0,5427.0,714
+v17-l8-tomatoes-base-take-edge-1p35,tomatoes base take edge,1.35,13038.0,7403.0,5635.0,715
+v17-l8-tomatoes-base-take-edge-1p50,tomatoes base take edge,1.50,12830.0,7403.0,5427.0,714
+v17-l8-tomatoes-base-take-edge-1p65,tomatoes base take edge,1.65,12747.0,7403.0,5344.0,716
+v17-layered-best,layered_best_confirmation,combined,13038.0,7403.0,5635.0,715

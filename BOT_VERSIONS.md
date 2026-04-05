@@ -205,3 +205,33 @@ Works: Yes
 Improvement: Keeps the V15 TOMATOES engine unchanged and rewrites only EMERALDS toward a more explicit Prosperity 3-style execution layer: tiered take sizes based on distance from fair value, a separate clear-position pass near fair, earlier inventory pressure with a lower soft limit, and book-aware passive quoting using join / undercut style placement.
 Notes: This became the new breakout official bot. The official result came in at about 2'184.6, which is a huge jump over V15's 1'873.6. The most important confirmation is that TOMATOES stayed exactly unchanged from V15 at 1'134.6, so the entire gain came from EMERALDS, which jumped from 739.0 to 1'050.0. The EMERALDS trade profile changed sharply in the direction we wanted: buys increased from 90 to 115 and got better on average, improving from 9996.356 to 9995.922, while sells increased from 109 to 128 and got materially better, improving from 10003.771 to 10004.539. The level distribution is also much more concentrated and decisive than V15: EMERALDS mainly bought at 9993 and 10000, and sold heavily at 10007, instead of spreading inventory across many middling price levels. This is the clearest evidence so far that the missing EMERALDS edge was execution structure and inventory recycling, not a better fair-value formula.
 PnL: Official 2'184.6 | Rust: 12'827
+
+V16.1:
+Works: Yes
+Improvement: Keeps EMERALDS frozen from V16 and tests TOMATOES layered soft limits with staged trend exits, aiming to hold trend inventory longer without shutting the product down completely.
+Notes: The official-site result you reported came in around 2'150, so it stayed fairly close to V16 but did not improve it. The local Rust direction was also negative: the stronger soft-band version dropped from 12'827 to 12'622, with EMERALDS unchanged and TOMATOES falling from 5'424 to 5'219. The common pattern matches earlier attempts: the soft-limit idea changes TOMATOES behavior, but still tends to become too cautious and give up good trading flow.
+PnL: Official ~2'150 | Rust: 12'622
+
+V16.2:
+Works: Yes
+Improvement: Keeps EMERALDS frozen from V16 and tests a narrower TOMATOES microstructure overlay. It only adds a confirmed-trend bias to fair value, take edge, and passive quote placement when momentum, short momentum, and imbalance all line up strongly.
+Notes: Local result was clearly worse than V16. Total Rust PnL dropped from 12'827 to 12'414. EMERALDS stayed unchanged at 7'403, so the whole loss came from TOMATOES, which fell from 5'424 to 5'011. That suggests the confirmed-trend nudges made TOMATOES too selective or misplaced quotes enough to reduce the good flow that V16 already captures well.
+PnL: Official N/A | Rust: 12'414
+
+V17:
+Works: Yes
+Improvement: Builds a fuller TOMATOES microstructure overlay on top of V16. It adds a pressure score from microprice dislocation, short-horizon momentum, and order-book imbalance, then uses that pressure to nudge fair value, taking thresholds, and passive quote placement.
+Notes: This is the cleanest implementation of the microstructure idea so far, but the first local result was still weaker than V16. Total Rust PnL dropped from 12'827 to 12'613. EMERALDS stayed frozen at 7'403, so again the whole change came from TOMATOES, which fell from 5'424 to 5'210. The overlay increased trade count, so the problem was not missed participation; it likely pushed too many TOMATOES quotes or takes in the wrong direction. The good news is that this confirms the architecture can be isolated cleanly. The next improvement probably needs either a much smaller pressure coefficient or a narrower maker/taker split rather than pressure moving both fair value and quotes at the same time.
+PnL: Official N/A | Rust: 12'613
+
+V17.x Sweep:
+Works: Yes
+Improvement: Tests the TOMATOES microstructure architecture directly with a dedicated local sweep over pressure coefficients and execution levers, instead of guessing a single next variant. The sweep keeps EMERALDS frozen and only changes the TOMATOES pressure layer and its interaction with base take and quote edges.
+Notes: The sweep shows the architecture is salvageable, but only with much softer pressure influence. The best layered local result reached 13'038, beating both the raw V17 result and even V16 locally. The strongest findings were: lower `PRESSURE_MICRO_COEF` at 0.60 worked better than 1.00, `PRESSURE_FAIR_BONUS` should be small at 0.15 rather than large, `PRESSURE_EDGE_BONUS` worked best at 0.0, and the biggest lever by far was simply lowering TOMATOES `BASE_TAKE_EDGE` from 1.50 to 1.35. The best layered combination also preferred a slightly wider TOMATOES `BASE_QUOTE_EDGE` of 2.50 and a high `PRESSURE_QUOTE_THRESHOLD` of 1.60, which means the pressure signal should act rarely and mostly through fair-value / quote placement, not aggressive-edge changes. The sweep outputs live in `Analysis/output/v17_sweep_report.txt` and `Analysis/output/v17_sweep_results.csv`.
+PnL: Rust Sweep Best 13'038 | Baseline 12'613
+
+V17.1:
+Works: Yes
+Improvement: Clean upload-safe implementation of the best `V17.x` sweep result. It keeps EMERALDS unchanged from V16 and applies the winning softer TOMATOES microstructure settings directly in the bot defaults.
+Notes: Officially, this is a small but real improvement over V16. Total PnL moved from about 2'184.6 to 2'186.6. EMERALDS stayed completely unchanged at 1'050.0 with the exact same trade profile and price levels, so the whole gain came from TOMATOES. The TOMATOES trade count and quantity also stayed identical to V16 at 36 buys / 124 quantity and 32 sells / 109 quantity, which means the improvement came purely from slightly better execution quality. In the official log the average TOMATOES buy improved from 4986.637 to 4986.621 while average sell stayed the same at 4995.679. So this is not a major breakout, but it is a clean confirmation that the softer microstructure overlay can help when it is kept light.
+PnL: Official 2'186.6 | Rust: 13'038
