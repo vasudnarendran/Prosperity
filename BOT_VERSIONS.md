@@ -517,3 +517,33 @@ Works: Yes
 Improvement: Clean upload-safe continuation of the plateau sweep winner, pushing the spread-heavy region slightly further with a higher base quote edge and stronger volatility, inventory, and time spread coefficients.
 Notes: New best official bot. Rust PnL reached 14'438 with EMERALDS unchanged at 7'403 and TOMATOES at 7'035 over 722 trades. Officially, V29.4 improved from 2'386.875 to 2'394.875. EMERALDS stayed exactly fixed at 1'050.0, and TOMATOES improved from 1'336.875 to 1'344.875 with the same trade counts, a slightly better average buy, and an unchanged average sell.
 PnL: Official 2'394.9 | Rust 14'438
+
+V31:
+Works: Yes
+Improvement: Full architecture reset built from the simple `Trader.py` structure, keeping only selective `v29.4` ideas. EMERALDS stays as a lighter anchored mean-reversion market maker, while TOMATOES moves to a cleaner microstructure engine with multi-level imbalance, order-flow imbalance, online RLS alpha, maker/taker separation, queue-aware passive EV, post-fill adverse-selection bias, and book sweeping.
+Notes: Clean and runnable, but weaker than the current best family. Rust PnL reached 12'870 with EMERALDS at 7'021 and TOMATOES at 5'849 over 654 trades. So the reset architecture is viable, but this first version gives up too much edge versus the stronger `v29.4` control stack.
+PnL: Official N/A | Rust 12'870
+
+V32:
+Works: Yes
+Improvement: Brownian-motion continuation of the reset architecture, with an Ornstein-Uhlenbeck style EMERALDS fair/quote engine and a drift-vs-diffusion TOMATOES layer using `mu`, `sigma`, `mu/sigma`, Brownian-style quote-hit logic, and more explicit mean-reversion drift terms.
+Notes: Interesting theory, but this exact implementation was a miss. Rust PnL collapsed to 3'883 because EMERALDS fell to -1'323, even though TOMATOES improved versus V31 to 5'206. So the Brownian framing may still be useful, but the OU rewrite clearly hurt the stable EMERALDS product in this form.
+PnL: Official N/A | Rust 3'883
+
+V32.1:
+Works: Yes
+Improvement: Keeps the full old EMERALDS engine and applies the Brownian-motion ideas only to dynamic TOMATOES. EMERALDS is restored to the proven tiered-take and recycle structure, while TOMATOES keeps the drift-vs-diffusion, `mu/sigma`, Brownian quote-hit, and online microstructure alpha logic.
+Notes: Much better than the full V32 rewrite because EMERALDS recovered completely to 7'403, but still below the strong `v29.4` family. Rust PnL reached 12'609 with TOMATOES at 5'206 over 706 trades. So the Brownian TOMATOES layer is stable, but it still does not beat the stronger existing control stack.
+PnL: Official N/A | Rust 12'609
+
+V33:
+Works: Yes
+Improvement: Hybrid R&D branch that keeps the full old EMERALDS engine, preserves the `v31`-style TOMATOES architecture, and implements the main modeling fixes from review: reduced alpha double-counting, delayed markout-based fill bias, softmax-style regime weights, safer RLS updates, and a cleaned passive EV calculation.
+Notes: Stable, but too defensive. Rust PnL reached 12'507 with EMERALDS restored to 7'403 and TOMATOES at 5'104 over 702 trades. So the fixes are directionally sensible, but in this first calibration they damped TOMATOES too much and gave back the edge that made V31 interesting.
+PnL: Official N/A | Rust 12'507
+
+V33.1:
+Works: Yes
+Improvement: Softer calibration of the V33 fixes, reducing fill-bias penalties and toxic-state skips while restoring more residual alpha sensitivity.
+Notes: Worse than V33. Rust PnL fell to 11'976 with EMERALDS still fixed at 7'403 and TOMATOES dropping to 4'573 over 732 trades. So loosening the corrected model did not recover the lost edge; it mostly increased weaker TOMATOES activity.
+PnL: Official N/A | Rust 11'976

@@ -10,14 +10,22 @@ POSITION_LIMITS: Dict[str, int] = {
 }
 
 EMERALDS = {
-    "ANCHOR": 10000.0,
-    "ANCHOR_WEIGHT": 0.85,
-    "MID_WEIGHT": 0.15,
+    "REFERENCE_PRICE": 10000.0,
+    "REFERENCE_WEIGHT": 0.80,
+    "MID_WEIGHT": 0.20,
+    "MICRO_WEIGHT": 0.00,
     "INVENTORY_SKEW": 0.12,
-    "TAKE_EDGE": 2.0,
-    "WIDE_TAKE_EDGE": 6.0,
-    "PASSIVE_EDGE": 7.0,
-    "ORDER_SIZE": 10,
+    "TAKE_TIER_1_DISTANCE": 1.0,
+    "TAKE_TIER_2_DISTANCE": 4.0,
+    "TAKE_TIER_3_DISTANCE": 8.0,
+    "TAKE_TIER_1_SIZE": 6,
+    "TAKE_TIER_2_SIZE": 12,
+    "TAKE_TIER_3_SIZE": 20,
+    "CLEAR_WIDTH": 0.0,
+    "BASE_ORDER_SIZE": 10,
+    "DISREGARD_EDGE": 2.0,
+    "JOIN_EDGE": 1.0,
+    "DEFAULT_EDGE": 8.0,
     "SOFT_LIMIT_RATIO": 0.25,
 }
 
@@ -55,6 +63,17 @@ TOMATOES = {
     "POST_FILL_MAX_BIAS": 2.0,
     "POST_FILL_QUOTE_PENALTY": 0.45,
     "POST_FILL_TAKE_PENALTY": 0.30,
+    "MARKOUT_DELAY_TICKS": 400,
+    "MARKOUT_SCALE": 0.30,
+    "RLS_SKIP_SPREAD": 16.0,
+    "RLS_SKIP_TOXIC": 0.55,
+    "RLS_TARGET_CLIP": 3.0,
+    "RLS_BETA_CLIP": 1.50,
+    "RESIDUAL_ALPHA_WEIGHT": 0.20,
+    "MOMENTUM_RESIDUAL_WEIGHT": 0.05,
+    "REGIME_TREND_COEF": 1.35,
+    "REGIME_FLOW_COEF": 0.75,
+    "REGIME_TOXIC_COEF": 1.20,
 }
 
 HISTORY_LENGTH = 12
@@ -252,19 +271,19 @@ class Trader:
                 normalizer += max(prev_volume, curr_volume)
         return score / max(20.0, normalizer)
 
-    def load_beta(self, memory: Dict[str, object]) -> List[float]:
-        raw = memory.get("beta")
+    def load_beta(self, memory: Dict[str, object], key: str = "beta") -> List[float]:
+        raw = memory.get(key)
         if not isinstance(raw, list) or len(raw) != len(FEATURE_NAMES):
             return [0.0] * len(FEATURE_NAMES)
         return [float(value) if isinstance(value, (int, float)) else 0.0 for value in raw]
 
-    def load_p_matrix(self, memory: Dict[str, object]) -> List[List[float]]:
+    def load_p_matrix(self, memory: Dict[str, object], key: str = "p_matrix") -> List[List[float]]:
         dimension = len(FEATURE_NAMES)
         fallback = [
             [TOMATOES["RLS_DELTA"] if row == col else 0.0 for col in range(dimension)]
             for row in range(dimension)
         ]
-        raw = memory.get("p_matrix")
+        raw = memory.get(key)
         if not isinstance(raw, list) or len(raw) != dimension:
             return fallback
 
@@ -288,14 +307,19 @@ class Trader:
         last_features: object,
         last_mid: object,
         current_mid: float,
+        current_spread: float,
+        current_toxic: float,
     ) -> Tuple[List[float], List[List[float]]]:
         if not isinstance(last_features, list) or len(last_features) != len(beta):
             return beta, p_matrix
         if not isinstance(last_mid, (int, float)):
             return beta, p_matrix
+        if current_spread >= TOMATOES["RLS_SKIP_SPREAD"] or current_toxic >= TOMATOES["RLS_SKIP_TOXIC"]:
+            return beta, p_matrix
 
         x = [float(value) for value in last_features]
         y = current_mid - float(last_mid)
+        y = max(-TOMATOES["RLS_TARGET_CLIP"], min(TOMATOES["RLS_TARGET_CLIP"], y))
         dimension = len(beta)
         p_times_x = [
             sum(p_matrix[row][col] * x[col] for col in range(dimension))
@@ -308,7 +332,13 @@ class Trader:
         k = [value / denom for value in p_times_x]
         prediction = sum(beta[index] * x[index] for index in range(dimension))
         error = y - prediction
-        next_beta = [beta[index] + (k[index] * error) for index in range(dimension)]
+        next_beta = [
+            max(
+                -TOMATOES["RLS_BETA_CLIP"],
+                min(TOMATOES["RLS_BETA_CLIP"], beta[index] + (k[index] * error)),
+            )
+            for index in range(dimension)
+        ]
 
         x_t_p = [
             sum(x[row] * p_matrix[row][col] for row in range(dimension))
@@ -329,11 +359,51 @@ class Trader:
         state: TradingState,
         product: str,
         memory: Dict[str, object],
-    ) -> Tuple[float, float, int]:
+        current_mid: float,
+    ) -> Tuple[float, float, int, List[Dict[str, float]]]:
         buy_bias = self.decay_fill_bias(float(memory.get("adverse_buy_bias", 0.0)))
         sell_bias = self.decay_fill_bias(float(memory.get("adverse_sell_bias", 0.0)))
         last_processed_ts = int(memory.get("last_fill_ts", -1))
         latest_ts = last_processed_ts
+        pending_raw = memory.get("pending_fills", [])
+        pending_fills: List[Dict[str, float]] = []
+        if isinstance(pending_raw, list):
+            for item in pending_raw:
+                if isinstance(item, dict):
+                    try:
+                        pending_fills.append(
+                            {
+                                "side": str(item.get("side", "")),
+                                "mid": float(item.get("mid", current_mid)),
+                                "timestamp": float(item.get("timestamp", 0)),
+                                "qty": float(item.get("qty", 1)),
+                            }
+                        )
+                    except (TypeError, ValueError):
+                        continue
+
+        remaining_pending: List[Dict[str, float]] = []
+        for fill in pending_fills:
+            age = float(getattr(state, "timestamp", 0)) - fill["timestamp"]
+            if age < TOMATOES["MARKOUT_DELAY_TICKS"]:
+                remaining_pending.append(fill)
+                continue
+
+            markout = current_mid - fill["mid"]
+            step = min(
+                TOMATOES["POST_FILL_MAX_BIAS"],
+                0.05 * fill["qty"] + TOMATOES["MARKOUT_SCALE"] * min(3.0, abs(markout)),
+            )
+            if fill["side"] == "BUY":
+                if markout < 0:
+                    buy_bias = min(TOMATOES["POST_FILL_MAX_BIAS"], buy_bias + step)
+                else:
+                    buy_bias = max(0.0, buy_bias - 0.5 * step)
+            elif fill["side"] == "SELL":
+                if markout > 0:
+                    sell_bias = min(TOMATOES["POST_FILL_MAX_BIAS"], sell_bias + step)
+                else:
+                    sell_bias = max(0.0, sell_bias - 0.5 * step)
 
         for trade in state.own_trades.get(product, []):
             if not isinstance(trade, Trade):
@@ -342,14 +412,26 @@ class Trader:
             if trade_ts <= last_processed_ts:
                 continue
             latest_ts = max(latest_ts, trade_ts)
-            qty = max(1, abs(int(getattr(trade, "quantity", 0))))
-            bias_step = min(TOMATOES["POST_FILL_MAX_BIAS"], 0.20 + 0.03 * qty)
             if getattr(trade, "buyer", None) == "SUBMISSION":
-                buy_bias = min(TOMATOES["POST_FILL_MAX_BIAS"], buy_bias + bias_step)
+                remaining_pending.append(
+                    {
+                        "side": "BUY",
+                        "mid": current_mid,
+                        "timestamp": float(trade_ts),
+                        "qty": float(max(1, abs(int(getattr(trade, "quantity", 0))))),
+                    }
+                )
             if getattr(trade, "seller", None) == "SUBMISSION":
-                sell_bias = min(TOMATOES["POST_FILL_MAX_BIAS"], sell_bias + bias_step)
+                remaining_pending.append(
+                    {
+                        "side": "SELL",
+                        "mid": current_mid,
+                        "timestamp": float(trade_ts),
+                        "qty": float(max(1, abs(int(getattr(trade, "quantity", 0))))),
+                    }
+                )
 
-        return buy_bias, sell_bias, latest_ts
+        return buy_bias, sell_bias, latest_ts, remaining_pending
 
     def feature_vector(
         self,
@@ -357,15 +439,18 @@ class Trader:
         history: List[float],
         ml_imbalance: float,
         ofi: float,
+        volatility: float,
     ) -> List[float]:
+        spread_scale = max(1.0, float(book["spread"]))
+        vol_scale = max(1.0, volatility)
         spread_norm = float(book["spread"]) / max(1.0, float(book["mid"]) / 1000.0)
         return [
             1.0,
-            float(book["micro"]) - float(book["mid"]),
+            (float(book["micro"]) - float(book["mid"])) / spread_scale,
             float(book["l1_imbalance"]),
             ml_imbalance,
             ofi,
-            float(book["momentum"]),
+            float(book["momentum"]) / vol_scale,
             spread_norm,
         ]
 
@@ -382,20 +467,28 @@ class Trader:
     ) -> Dict[str, float]:
         vol_scale = max(1.0, volatility)
         trend_signal = alpha_signal / vol_scale
-        p_toxic = sigmoid(
-            0.65 * (spread - TOMATOES["TOXIC_SPREAD"])
-            + 0.80 * (volatility - TOMATOES["TOXIC_VOL"])
-            + 1.20 * abs(ofi)
-        )
-        p_up = sigmoid(1.40 * trend_signal + 0.80 * ofi + 0.55 * ml_imbalance - 1.00 * p_toxic)
-        p_down = sigmoid(-1.40 * trend_signal - 0.80 * ofi - 0.55 * ml_imbalance - 1.00 * p_toxic)
-        p_range = max(0.0, 1.0 - max(p_up, p_down) - 0.35 * p_toxic)
-        return {
-            "trend_up": p_up,
-            "trend_down": p_down,
-            "range": p_range,
-            "toxic": p_toxic,
+        logits = {
+            "trend_up": (
+                TOMATOES["REGIME_TREND_COEF"] * trend_signal
+                + TOMATOES["REGIME_FLOW_COEF"] * ofi
+                + 0.45 * ml_imbalance
+            ),
+            "trend_down": (
+                -TOMATOES["REGIME_TREND_COEF"] * trend_signal
+                - TOMATOES["REGIME_FLOW_COEF"] * ofi
+                - 0.45 * ml_imbalance
+            ),
+            "range": 0.35 - 0.90 * abs(trend_signal) - 0.35 * abs(ofi),
+            "toxic": (
+                TOMATOES["REGIME_TOXIC_COEF"] * (spread - TOMATOES["TOXIC_SPREAD"]) / 4.0
+                + 0.90 * (volatility - TOMATOES["TOXIC_VOL"])
+                + 0.80 * abs(ofi)
+            ),
         }
+        max_logit = max(logits.values())
+        exps = {key: math.exp(value - max_logit) for key, value in logits.items()}
+        total = sum(exps.values())
+        return {key: value / total for key, value in exps.items()}
 
     def dynamic_soft_limit(self, regime: Dict[str, float], position_limit: int) -> int:
         ratio = (
@@ -470,8 +563,8 @@ class Trader:
     ) -> float:
         best_bid = int(book["best_bid"])
         best_ask = int(book["best_ask"])
-        spread_capture = (reservation - quote) if side == "BUY" else (quote - reservation)
-        spread_capture = max(0.0, spread_capture)
+        raw_capture = (reservation - quote) if side == "BUY" else (quote - reservation)
+        spread_capture = max(0.0, raw_capture)
 
         queue_bonus = 0.0
         if side == "BUY" and quote == best_bid + 1:
@@ -485,7 +578,7 @@ class Trader:
 
         adverse = (
             TOMATOES["PASSIVE_ADVERSE_COEF"] * regime["toxic"]
-            + 0.20 * max(0.0, -spread_capture)
+            + 0.25 * max(0.0, -raw_capture)
             + TOMATOES["POST_FILL_QUOTE_PENALTY"] * adverse_bias
         )
         inventory_cost = 0.15 * abs(position) / max(1, soft_limit)
@@ -643,8 +736,9 @@ class Trader:
         builder = OrderBuilder(product, POSITION_LIMITS[product], state.position.get(product, 0))
         soft_limit = int(POSITION_LIMITS[product] * EMERALDS["SOFT_LIMIT_RATIO"])
         fair = (
-            EMERALDS["ANCHOR_WEIGHT"] * EMERALDS["ANCHOR"]
+            EMERALDS["REFERENCE_WEIGHT"] * EMERALDS["REFERENCE_PRICE"]
             + EMERALDS["MID_WEIGHT"] * float(book["mid"])
+            + EMERALDS["MICRO_WEIGHT"] * float(book["micro"])
         )
         fair -= builder.projected_position() * EMERALDS["INVENTORY_SKEW"]
 
@@ -653,25 +747,81 @@ class Trader:
         ask_volume = int(book["best_ask_volume"])
         bid_volume = int(book["best_bid_volume"])
 
-        if best_ask <= fair - EMERALDS["TAKE_EDGE"]:
-            take_size = EMERALDS["ORDER_SIZE"]
-            if best_ask <= fair - EMERALDS["WIDE_TAKE_EDGE"]:
-                take_size += 8
-            if builder.projected_position() <= -soft_limit:
-                take_size += 4
-            builder.add_buy(best_ask, min(ask_volume, take_size))
+        buy_distance = fair - float(best_ask)
+        sell_distance = float(best_bid) - fair
 
-        if best_bid >= fair + EMERALDS["TAKE_EDGE"]:
-            take_size = EMERALDS["ORDER_SIZE"]
-            if best_bid >= fair + EMERALDS["WIDE_TAKE_EDGE"]:
-                take_size += 8
-            if builder.projected_position() >= soft_limit:
-                take_size += 4
-            builder.add_sell(best_bid, min(bid_volume, take_size))
+        buy_take_size = 0
+        if buy_distance >= EMERALDS["TAKE_TIER_3_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_3_SIZE"]
+        elif buy_distance >= EMERALDS["TAKE_TIER_2_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_2_SIZE"]
+        elif buy_distance >= EMERALDS["TAKE_TIER_1_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_1_SIZE"]
+
+        sell_take_size = 0
+        if sell_distance >= EMERALDS["TAKE_TIER_3_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_3_SIZE"]
+        elif sell_distance >= EMERALDS["TAKE_TIER_2_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_2_SIZE"]
+        elif sell_distance >= EMERALDS["TAKE_TIER_1_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_1_SIZE"]
 
         projected = builder.projected_position()
-        buy_quote = math.floor(fair - EMERALDS["PASSIVE_EDGE"])
-        sell_quote = math.ceil(fair + EMERALDS["PASSIVE_EDGE"])
+        if projected <= -soft_limit:
+            buy_take_size += 4
+            sell_take_size = max(0, sell_take_size - 3)
+        elif projected >= soft_limit:
+            sell_take_size += 4
+            buy_take_size = max(0, buy_take_size - 3)
+
+        if buy_take_size > 0 and builder.buy_capacity > 0:
+            builder.add_buy(best_ask, min(ask_volume, buy_take_size))
+        if sell_take_size > 0 and builder.sell_capacity > 0:
+            builder.add_sell(best_bid, min(bid_volume, sell_take_size))
+
+        projected = builder.projected_position()
+        if (
+            projected > 0
+            and builder.sell_capacity > 0
+            and best_bid >= math.ceil(fair + EMERALDS["CLEAR_WIDTH"])
+        ):
+            builder.add_sell(best_bid, min(projected, bid_volume, EMERALDS["BASE_ORDER_SIZE"]))
+
+        projected = builder.projected_position()
+        if (
+            projected < 0
+            and builder.buy_capacity > 0
+            and best_ask <= math.floor(fair - EMERALDS["CLEAR_WIDTH"])
+        ):
+            builder.add_buy(best_ask, min(abs(projected), ask_volume, EMERALDS["BASE_ORDER_SIZE"]))
+
+        projected = builder.projected_position()
+        buy_quote = round(fair - EMERALDS["DEFAULT_EDGE"])
+        sell_quote = round(fair + EMERALDS["DEFAULT_EDGE"])
+
+        asks_above_fair = [
+            price for price, _volume in book["sell_levels"]
+            if price > fair + EMERALDS["DISREGARD_EDGE"]
+        ]
+        bids_below_fair = [
+            price for price, _volume in book["buy_levels"]
+            if price < fair - EMERALDS["DISREGARD_EDGE"]
+        ]
+
+        best_ask_above_fair = min(asks_above_fair) if asks_above_fair else None
+        best_bid_below_fair = max(bids_below_fair) if bids_below_fair else None
+
+        if best_ask_above_fair is not None:
+            if abs(best_ask_above_fair - fair) <= EMERALDS["JOIN_EDGE"]:
+                sell_quote = best_ask_above_fair
+            else:
+                sell_quote = best_ask_above_fair - 1
+
+        if best_bid_below_fair is not None:
+            if abs(fair - best_bid_below_fair) <= EMERALDS["JOIN_EDGE"]:
+                buy_quote = best_bid_below_fair
+            else:
+                buy_quote = best_bid_below_fair + 1
 
         if projected >= soft_limit:
             buy_quote -= 1
@@ -682,12 +832,25 @@ class Trader:
 
         buy_quote, sell_quote = self.clamp_inside_spread(book, buy_quote, sell_quote)
 
-        if buy_quote is not None and builder.buy_capacity > 0 and projected < soft_limit + EMERALDS["ORDER_SIZE"]:
-            size = EMERALDS["ORDER_SIZE"] + (4 if projected <= -soft_limit else 0)
+        if buy_quote is not None and builder.buy_capacity > 0 and projected < soft_limit + EMERALDS["BASE_ORDER_SIZE"]:
+            size = EMERALDS["BASE_ORDER_SIZE"]
+            if int(book["spread"]) >= 16:
+                size += 1
+            if projected <= -soft_limit:
+                size += 4
+            elif projected >= soft_limit:
+                size = max(1, size - 6)
             builder.add_buy(buy_quote, size)
 
-        if sell_quote is not None and builder.sell_capacity > 0 and projected > -(soft_limit + EMERALDS["ORDER_SIZE"]):
-            size = EMERALDS["ORDER_SIZE"] + (4 if projected >= soft_limit else 0)
+        projected = builder.projected_position()
+        if sell_quote is not None and builder.sell_capacity > 0 and projected > -(soft_limit + EMERALDS["BASE_ORDER_SIZE"]):
+            size = EMERALDS["BASE_ORDER_SIZE"]
+            if int(book["spread"]) >= 16:
+                size += 1
+            if projected >= soft_limit:
+                size += 4
+            elif projected <= -soft_limit:
+                size = max(1, size - 6)
             builder.add_sell(sell_quote, size)
 
         return builder.orders
@@ -705,6 +868,13 @@ class Trader:
         if book is None:
             return [], memory
 
+        previous_book = self.previous_book_snapshot(memory)
+        current_book = self.current_book_snapshot(book)
+        ml_imbalance = self.multi_level_imbalance(book)
+        ofi = self.order_flow_imbalance(previous_book, current_book)
+        volatility = self.realized_volatility(product_history, int(book["spread"]))
+        prelim_regime = self.regime_probabilities(0.0, volatility, int(book["spread"]), ml_imbalance, ofi)
+
         beta = self.load_beta(memory)
         p_matrix = self.load_p_matrix(memory)
         beta, p_matrix = self.update_rls(
@@ -713,29 +883,31 @@ class Trader:
             memory.get("last_features"),
             memory.get("last_mid"),
             float(book["mid"]),
+            float(book["spread"]),
+            prelim_regime["toxic"],
         )
 
-        buy_bias, sell_bias, last_fill_ts = self.update_post_fill_bias(state, product, memory)
+        buy_bias, sell_bias, last_fill_ts, pending_fills = self.update_post_fill_bias(
+            state,
+            product,
+            memory,
+            float(book["mid"]),
+        )
 
-        previous_book = self.previous_book_snapshot(memory)
-        current_book = self.current_book_snapshot(book)
-        ml_imbalance = self.multi_level_imbalance(book)
-        ofi = self.order_flow_imbalance(previous_book, current_book)
-        volatility = self.realized_volatility(product_history, int(book["spread"]))
-        features = self.feature_vector(book, product_history, ml_imbalance, ofi)
+        features = self.feature_vector(book, product_history, ml_imbalance, ofi, volatility)
         online_delta = self.predicted_delta(beta, features)
-
-        maker_alpha = TOMATOES["MAKER_ALPHA_SCALE"] * (
-            online_delta
-            + TOMATOES["OFI_WEIGHT"] * ofi
+        residual_alpha = (
+            TOMATOES["OFI_WEIGHT"] * ofi
             + TOMATOES["ML_IMBALANCE_WEIGHT"] * ml_imbalance
-            + 0.30 * (float(book["micro"]) - float(book["mid"]))
+            + 0.20 * ((float(book["micro"]) - float(book["mid"])) / max(1.0, float(book["spread"])))
+        )
+        maker_alpha = TOMATOES["MAKER_ALPHA_SCALE"] * (
+            online_delta + TOMATOES["RESIDUAL_ALPHA_WEIGHT"] * residual_alpha
         )
         taker_alpha = TOMATOES["TAKER_ALPHA_SCALE"] * (
             online_delta
-            + TOMATOES["OFI_WEIGHT"] * ofi
-            + TOMATOES["ML_IMBALANCE_WEIGHT"] * ml_imbalance
-            + 0.25 * float(book["momentum"])
+            + TOMATOES["RESIDUAL_ALPHA_WEIGHT"] * residual_alpha
+            + TOMATOES["MOMENTUM_RESIDUAL_WEIGHT"] * (float(book["momentum"]) / max(1.0, volatility))
         )
         regime = self.regime_probabilities(taker_alpha, volatility, int(book["spread"]), ml_imbalance, ofi)
 
@@ -825,6 +997,7 @@ class Trader:
             "adverse_buy_bias": buy_bias,
             "adverse_sell_bias": sell_bias,
             "last_fill_ts": last_fill_ts,
+            "pending_fills": pending_fills,
         }
         return builder.orders, next_memory
 

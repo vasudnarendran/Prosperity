@@ -10,14 +10,22 @@ POSITION_LIMITS: Dict[str, int] = {
 }
 
 EMERALDS = {
-    "ANCHOR": 10000.0,
-    "ANCHOR_WEIGHT": 0.85,
-    "MID_WEIGHT": 0.15,
+    "REFERENCE_PRICE": 10000.0,
+    "REFERENCE_WEIGHT": 0.80,
+    "MID_WEIGHT": 0.20,
+    "MICRO_WEIGHT": 0.00,
     "INVENTORY_SKEW": 0.12,
-    "TAKE_EDGE": 2.0,
-    "WIDE_TAKE_EDGE": 6.0,
-    "PASSIVE_EDGE": 7.0,
-    "ORDER_SIZE": 10,
+    "TAKE_TIER_1_DISTANCE": 1.0,
+    "TAKE_TIER_2_DISTANCE": 4.0,
+    "TAKE_TIER_3_DISTANCE": 8.0,
+    "TAKE_TIER_1_SIZE": 6,
+    "TAKE_TIER_2_SIZE": 12,
+    "TAKE_TIER_3_SIZE": 20,
+    "CLEAR_WIDTH": 0.0,
+    "BASE_ORDER_SIZE": 10,
+    "DISREGARD_EDGE": 2.0,
+    "JOIN_EDGE": 1.0,
+    "DEFAULT_EDGE": 8.0,
     "SOFT_LIMIT_RATIO": 0.25,
 }
 
@@ -55,6 +63,10 @@ TOMATOES = {
     "POST_FILL_MAX_BIAS": 2.0,
     "POST_FILL_QUOTE_PENALTY": 0.45,
     "POST_FILL_TAKE_PENALTY": 0.30,
+    "DRIFT_ZSCORE_SCALE": 1.55,
+    "DRIFT_ZSCORE_CLIP": 2.8,
+    "OU_REVERT_WEIGHT": 0.20,
+    "BROWNIAN_HIT_COEF": 0.55,
 }
 
 HISTORY_LENGTH = 12
@@ -417,6 +429,18 @@ class Trader:
         remaining_ticks = max(0.0, TOMATOES["TIME_HORIZON_TICKS"] - (timestamp / 100.0))
         return remaining_ticks / TOMATOES["TIME_HORIZON_TICKS"]
 
+    def drift_zscore(self, drift: float, volatility: float) -> float:
+        return max(
+            -TOMATOES["DRIFT_ZSCORE_CLIP"],
+            min(TOMATOES["DRIFT_ZSCORE_CLIP"], drift / max(0.8, volatility)),
+        )
+
+    def brownian_hit_probability(self, distance: float, drift: float, volatility: float) -> float:
+        scaled_distance = abs(distance) / max(1.0, volatility)
+        base = math.exp(-TOMATOES["BROWNIAN_HIT_COEF"] * scaled_distance)
+        drift_boost = 0.15 * self.drift_zscore(drift, volatility)
+        return max(0.05, min(0.90, base + drift_boost))
+
     def reservation_price(
         self,
         fair_value: float,
@@ -467,6 +491,8 @@ class Trader:
         soft_limit: int,
         regime: Dict[str, float],
         adverse_bias: float,
+        drift: float,
+        volatility: float,
     ) -> float:
         best_bid = int(book["best_bid"])
         best_ask = int(book["best_ask"])
@@ -480,7 +506,15 @@ class Trader:
             queue_bonus += TOMATOES["QUEUE_VALUE_COEF"]
 
         queue_depth = book["best_bid_volume"] if side == "BUY" else book["best_ask_volume"]
-        p_fill = 0.20 + queue_bonus + 0.18 * max(0.0, 1.0 - (queue_depth / 35.0))
+        if side == "BUY":
+            drift_for_fill = drift
+            quote_distance = float(book["best_ask"]) - quote
+        else:
+            drift_for_fill = -drift
+            quote_distance = quote - float(book["best_bid"])
+
+        brownian_hit = self.brownian_hit_probability(quote_distance, drift_for_fill, volatility)
+        p_fill = 0.10 + queue_bonus + 0.18 * max(0.0, 1.0 - (queue_depth / 35.0)) + 0.45 * brownian_hit
         p_fill = max(0.05, min(0.85, p_fill))
 
         adverse = (
@@ -643,8 +677,9 @@ class Trader:
         builder = OrderBuilder(product, POSITION_LIMITS[product], state.position.get(product, 0))
         soft_limit = int(POSITION_LIMITS[product] * EMERALDS["SOFT_LIMIT_RATIO"])
         fair = (
-            EMERALDS["ANCHOR_WEIGHT"] * EMERALDS["ANCHOR"]
+            EMERALDS["REFERENCE_WEIGHT"] * EMERALDS["REFERENCE_PRICE"]
             + EMERALDS["MID_WEIGHT"] * float(book["mid"])
+            + EMERALDS["MICRO_WEIGHT"] * float(book["micro"])
         )
         fair -= builder.projected_position() * EMERALDS["INVENTORY_SKEW"]
 
@@ -653,25 +688,81 @@ class Trader:
         ask_volume = int(book["best_ask_volume"])
         bid_volume = int(book["best_bid_volume"])
 
-        if best_ask <= fair - EMERALDS["TAKE_EDGE"]:
-            take_size = EMERALDS["ORDER_SIZE"]
-            if best_ask <= fair - EMERALDS["WIDE_TAKE_EDGE"]:
-                take_size += 8
-            if builder.projected_position() <= -soft_limit:
-                take_size += 4
-            builder.add_buy(best_ask, min(ask_volume, take_size))
+        buy_distance = fair - float(best_ask)
+        sell_distance = float(best_bid) - fair
 
-        if best_bid >= fair + EMERALDS["TAKE_EDGE"]:
-            take_size = EMERALDS["ORDER_SIZE"]
-            if best_bid >= fair + EMERALDS["WIDE_TAKE_EDGE"]:
-                take_size += 8
-            if builder.projected_position() >= soft_limit:
-                take_size += 4
-            builder.add_sell(best_bid, min(bid_volume, take_size))
+        buy_take_size = 0
+        if buy_distance >= EMERALDS["TAKE_TIER_3_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_3_SIZE"]
+        elif buy_distance >= EMERALDS["TAKE_TIER_2_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_2_SIZE"]
+        elif buy_distance >= EMERALDS["TAKE_TIER_1_DISTANCE"]:
+            buy_take_size = EMERALDS["TAKE_TIER_1_SIZE"]
+
+        sell_take_size = 0
+        if sell_distance >= EMERALDS["TAKE_TIER_3_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_3_SIZE"]
+        elif sell_distance >= EMERALDS["TAKE_TIER_2_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_2_SIZE"]
+        elif sell_distance >= EMERALDS["TAKE_TIER_1_DISTANCE"]:
+            sell_take_size = EMERALDS["TAKE_TIER_1_SIZE"]
 
         projected = builder.projected_position()
-        buy_quote = math.floor(fair - EMERALDS["PASSIVE_EDGE"])
-        sell_quote = math.ceil(fair + EMERALDS["PASSIVE_EDGE"])
+        if projected <= -soft_limit:
+            buy_take_size += 4
+            sell_take_size = max(0, sell_take_size - 3)
+        elif projected >= soft_limit:
+            sell_take_size += 4
+            buy_take_size = max(0, buy_take_size - 3)
+
+        if buy_take_size > 0 and builder.buy_capacity > 0:
+            builder.add_buy(best_ask, min(ask_volume, buy_take_size))
+        if sell_take_size > 0 and builder.sell_capacity > 0:
+            builder.add_sell(best_bid, min(bid_volume, sell_take_size))
+
+        projected = builder.projected_position()
+        if (
+            projected > 0
+            and builder.sell_capacity > 0
+            and best_bid >= math.ceil(fair + EMERALDS["CLEAR_WIDTH"])
+        ):
+            builder.add_sell(best_bid, min(projected, bid_volume, EMERALDS["BASE_ORDER_SIZE"]))
+
+        projected = builder.projected_position()
+        if (
+            projected < 0
+            and builder.buy_capacity > 0
+            and best_ask <= math.floor(fair - EMERALDS["CLEAR_WIDTH"])
+        ):
+            builder.add_buy(best_ask, min(abs(projected), ask_volume, EMERALDS["BASE_ORDER_SIZE"]))
+
+        projected = builder.projected_position()
+        buy_quote = round(fair - EMERALDS["DEFAULT_EDGE"])
+        sell_quote = round(fair + EMERALDS["DEFAULT_EDGE"])
+
+        asks_above_fair = [
+            price for price, _volume in book["sell_levels"]
+            if price > fair + EMERALDS["DISREGARD_EDGE"]
+        ]
+        bids_below_fair = [
+            price for price, _volume in book["buy_levels"]
+            if price < fair - EMERALDS["DISREGARD_EDGE"]
+        ]
+
+        best_ask_above_fair = min(asks_above_fair) if asks_above_fair else None
+        best_bid_below_fair = max(bids_below_fair) if bids_below_fair else None
+
+        if best_ask_above_fair is not None:
+            if abs(best_ask_above_fair - fair) <= EMERALDS["JOIN_EDGE"]:
+                sell_quote = best_ask_above_fair
+            else:
+                sell_quote = best_ask_above_fair - 1
+
+        if best_bid_below_fair is not None:
+            if abs(fair - best_bid_below_fair) <= EMERALDS["JOIN_EDGE"]:
+                buy_quote = best_bid_below_fair
+            else:
+                buy_quote = best_bid_below_fair + 1
 
         if projected >= soft_limit:
             buy_quote -= 1
@@ -682,12 +773,25 @@ class Trader:
 
         buy_quote, sell_quote = self.clamp_inside_spread(book, buy_quote, sell_quote)
 
-        if buy_quote is not None and builder.buy_capacity > 0 and projected < soft_limit + EMERALDS["ORDER_SIZE"]:
-            size = EMERALDS["ORDER_SIZE"] + (4 if projected <= -soft_limit else 0)
+        if buy_quote is not None and builder.buy_capacity > 0 and projected < soft_limit + EMERALDS["BASE_ORDER_SIZE"]:
+            size = EMERALDS["BASE_ORDER_SIZE"]
+            if int(book["spread"]) >= 16:
+                size += 1
+            if projected <= -soft_limit:
+                size += 4
+            elif projected >= soft_limit:
+                size = max(1, size - 6)
             builder.add_buy(buy_quote, size)
 
-        if sell_quote is not None and builder.sell_capacity > 0 and projected > -(soft_limit + EMERALDS["ORDER_SIZE"]):
-            size = EMERALDS["ORDER_SIZE"] + (4 if projected >= soft_limit else 0)
+        projected = builder.projected_position()
+        if sell_quote is not None and builder.sell_capacity > 0 and projected > -(soft_limit + EMERALDS["BASE_ORDER_SIZE"]):
+            size = EMERALDS["BASE_ORDER_SIZE"]
+            if int(book["spread"]) >= 16:
+                size += 1
+            if projected >= soft_limit:
+                size += 4
+            elif projected <= -soft_limit:
+                size = max(1, size - 6)
             builder.add_sell(sell_quote, size)
 
         return builder.orders
@@ -724,24 +828,28 @@ class Trader:
         volatility = self.realized_volatility(product_history, int(book["spread"]))
         features = self.feature_vector(book, product_history, ml_imbalance, ofi)
         online_delta = self.predicted_delta(beta, features)
-
+        revert_signal = TOMATOES["OU_REVERT_WEIGHT"] * (float(book["recent_average"]) - float(book["mid"]))
+        drift = online_delta + TOMATOES["OFI_WEIGHT"] * ofi + TOMATOES["ML_IMBALANCE_WEIGHT"] * ml_imbalance
         maker_alpha = TOMATOES["MAKER_ALPHA_SCALE"] * (
-            online_delta
-            + TOMATOES["OFI_WEIGHT"] * ofi
-            + TOMATOES["ML_IMBALANCE_WEIGHT"] * ml_imbalance
+            drift
+            + revert_signal
             + 0.30 * (float(book["micro"]) - float(book["mid"]))
         )
         taker_alpha = TOMATOES["TAKER_ALPHA_SCALE"] * (
-            online_delta
-            + TOMATOES["OFI_WEIGHT"] * ofi
-            + TOMATOES["ML_IMBALANCE_WEIGHT"] * ml_imbalance
+            drift
             + 0.25 * float(book["momentum"])
+            + 0.10 * revert_signal
         )
+        drift_score = self.drift_zscore(taker_alpha, volatility)
+
         regime = self.regime_probabilities(taker_alpha, volatility, int(book["spread"]), ml_imbalance, ofi)
 
         soft_limit = self.dynamic_soft_limit(regime, POSITION_LIMITS[product])
         position = state.position.get(product, 0)
-        target_position = self.target_position(regime, taker_alpha, soft_limit)
+        target_position = max(
+            -soft_limit,
+            min(soft_limit, round(soft_limit * math.tanh(TOMATOES["DRIFT_ZSCORE_SCALE"] * drift_score))),
+        )
         tau = self.time_fraction_remaining(state)
 
         base_fair = (
@@ -752,7 +860,7 @@ class Trader:
         )
         base_fair -= position * TOMATOES["INVENTORY_SKEW"]
         reservation = self.reservation_price(base_fair, position, target_position, volatility, tau, regime)
-        taker_fair = float(book["mid"]) + taker_alpha
+        taker_fair = float(book["mid"]) + taker_alpha + 0.10 * revert_signal
 
         builder = OrderBuilder(product, POSITION_LIMITS[product], position)
 
@@ -784,6 +892,8 @@ class Trader:
                 soft_limit,
                 regime,
                 buy_bias,
+                maker_alpha,
+                volatility,
             )
             if buy_ev >= TOMATOES["PASSIVE_MIN_EV"] and (not took_buy or builder.projected_position() < target_position):
                 quantity = min(
@@ -804,6 +914,8 @@ class Trader:
                 soft_limit,
                 regime,
                 sell_bias,
+                maker_alpha,
+                volatility,
             )
             if sell_ev >= TOMATOES["PASSIVE_MIN_EV"] and (not took_sell or builder.projected_position() > target_position):
                 quantity = min(
