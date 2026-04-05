@@ -127,3 +127,9 @@ Works: Yes
 Improvement: Keeps EMERALDS close to the stronger V8 behavior and rebuilds TOMATOES as a state-machine strategy with discrete regimes, position bands, and one-sided execution rules instead of a single smoothed fair-value response.
 Notes: New record version, though only by a small margin over V8. The state-machine idea appears to have helped without destabilizing the bot: TOMATOES improved slightly while keeping the same trade count, and EMERALDS also improved modestly. That suggests the discrete regime logic preserved V8's edge better than the smoother V8.2 framework did.
 PnL: 1'800
+
+V10:
+Works: Yes
+Improvement: First explicitly product-specialized architecture for Prosperity 4, with a shared base trader, a dedicated EMERALDS module based on selective anchor-style market making, and a dedicated TOMATOES module based on regime/state behavior.
+Notes: The modular design held up well, but it did not beat the current best. The result landed at roughly the same level as V8, with essentially the same trade profile and product split: TOMATOES stayed strong while EMERALDS remained weaker than the old V6.2 peak. That suggests the architecture is promising for future development, but the product modules still need new alpha rather than just cleaner structure.
+PnL: 1'794
