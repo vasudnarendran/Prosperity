@@ -1,0 +1,16 @@
+{
+  "label": "alpha_richer_quote_tighter",
+  "run_id": "v39-sweep-03",
+  "total": 15931.0,
+  "emeralds": 7723.0,
+  "tomatoes": 8208.0,
+  "trades": 742,
+  "params": {
+    "BASE_TAKE_EDGE": 0.78,
+    "BASE_QUOTE_EDGE": 2.68,
+    "ALPHA_EDGE_SCALE": 1.4153631,
+    "RANGE_RESERVATION_BIAS": 0.26486122,
+    "ALPHA_BLEND_WEIGHT": 0.28,
+    "FAIR_ALPHA_WEIGHT": 0.42
+  }
+}

@@ -33,9 +33,9 @@ These are the highest scores reached so far. The best single-product peak does n
 
 | Metric | Best Value | Bot |
 | --- | ---: | --- |
-| Total PnL | `14'438` | `V29.4` |
-| EMERALDS PnL | `7'717` | `V34` |
-| TOMATOES PnL | `7'035` | `V29.4` |
+| Total PnL | `15'931` | `V39.1` |
+| EMERALDS PnL | `7'723` | `V29.8`, later matched by `V29.9`, `V39`, and `V39.1` |
+| TOMATOES PnL | `8'208` | `V39.1` |
 
 ## Official Logs
 
