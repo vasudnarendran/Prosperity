@@ -1,0 +1,47 @@
+{
+  "candidate_id": "55717-cmaes-overall-baseline",
+  "objective": 33468.48625,
+  "days": [
+    {
+      "day": -2.0,
+      "total": 15229.5,
+      "emeralds": 7072.0,
+      "tomatoes": 8157.5,
+      "own_trades": 681.0,
+      "avg_abs_inventory": 11.4534
+    },
+    {
+      "day": -1.0,
+      "total": 15252.0,
+      "emeralds": 7403.0,
+      "tomatoes": 7849.0,
+      "own_trades": 749.0,
+      "avg_abs_inventory": 12.1121
+    }
+  ],
+  "total": 30481.5,
+  "tomatoes_total": 16006.5,
+  "min_day_total": 15229.5,
+  "avg_inventory": 11.78275,
+  "inventory_penalty": 58.91375,
+  "iteration": -1,
+  "rank": 0,
+  "params": {
+    "EMERALDS.REFERENCE_WEIGHT": 0.8,
+    "EMERALDS.MID_WEIGHT": 0.2,
+    "EMERALDS.INVENTORY_SKEW": 0.12,
+    "EMERALDS.SOFT_LIMIT_RATIO": 0.25,
+    "TOMATOES.INVENTORY_SKEW": 0.005,
+    "TOMATOES.BASE_TAKE_EDGE": 0.8,
+    "TOMATOES.BASE_QUOTE_EDGE": 2.75,
+    "TOMATOES.SOFT_LIMIT_RATIO": 0.56828726,
+    "TOMATOES.GAMMA_RANGE": 0.69283327,
+    "TOMATOES.RESERVATION_SCALE": 0.02,
+    "TOMATOES.SPREAD_INV_COEF": 1.1081637,
+    "TOMATOES.SPREAD_TIME_COEF": 1.7791177,
+    "TOMATOES.ALPHA_EDGE_SCALE": 1.4153631,
+    "TOMATOES.ALPHA_IMBALANCE_SCALE": 0.7,
+    "TOMATOES.RANGE_RESERVATION_BIAS": 0.26486122,
+    "TOMATOES.REGRESSION_HORIZON": 0.5
+  }
+}

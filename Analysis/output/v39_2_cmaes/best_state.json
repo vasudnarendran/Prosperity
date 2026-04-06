@@ -1,0 +1,47 @@
+{
+  "candidate_id": "v39_2-cmaes-overall-baseline",
+  "objective": 33979.045750000005,
+  "days": [
+    {
+      "day": -2.0,
+      "total": 15464.0,
+      "emeralds": 7168.0,
+      "tomatoes": 8296.0,
+      "own_trades": 628.0,
+      "avg_abs_inventory": 12.3825
+    },
+    {
+      "day": -1.0,
+      "total": 15486.0,
+      "emeralds": 7723.0,
+      "tomatoes": 7763.0,
+      "own_trades": 684.0,
+      "avg_abs_inventory": 13.1192
+    }
+  ],
+  "total": 30950.0,
+  "tomatoes_total": 16059.0,
+  "min_day_total": 15464.0,
+  "avg_inventory": 12.75085,
+  "inventory_penalty": 63.75425,
+  "iteration": -1,
+  "rank": 0,
+  "params": {
+    "EMERALDS.REFERENCE_WEIGHT": 0.8,
+    "EMERALDS.MID_WEIGHT": 0.2,
+    "EMERALDS.INVENTORY_SKEW": 0.0328922991,
+    "EMERALDS.SOFT_LIMIT_RATIO": 0.6357999832,
+    "TOMATOES.BASE_TAKE_EDGE": 0.78,
+    "TOMATOES.BASE_QUOTE_EDGE": 2.68,
+    "TOMATOES.SOFT_LIMIT_RATIO": 0.56828726,
+    "TOMATOES.ALPHA_EDGE_SCALE": 1.4153631,
+    "TOMATOES.RANGE_RESERVATION_BIAS": 0.26486122,
+    "TOMATOES.ALPHA_BLEND_WEIGHT": 0.28,
+    "TOMATOES.FAIR_ALPHA_WEIGHT": 0.42,
+    "TOMATOES.RANGE_ALPHA_DAMP": 0.35,
+    "TOMATOES.CONFLICT_ALPHA_DAMP": 0.45,
+    "TOMATOES.MOMENTUM_ALPHA_DAMP": 0.7,
+    "TOMATOES.POSITION_ALPHA_DAMP_START": 14.0,
+    "TOMATOES.POSITION_ALPHA_DAMP_END": 28.0
+  }
+}

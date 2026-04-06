@@ -1,0 +1,58 @@
+Focused Bot CMA-ES
+==================
+
+Profile: v40_8_2_phase1
+Days: -2, -1
+Iterations: 4
+Population: 8
+Elite: 3
+Seed: 4101
+Inventory penalty: 5.0
+Stability weight: 0.2
+
+Parameters:
+- TOMATOES.BASE_TAKE_EDGE: start 0.7516267301, range [0.7, 0.82], sigma 0.02
+- TOMATOES.BASE_QUOTE_EDGE: start 2.6470054123, range [2.58, 2.74], sigma 0.025
+- TOMATOES.ALPHA_EDGE_SCALE: start 1.3634015054, range [1.28, 1.46], sigma 0.025
+- TOMATOES.ALPHA_BLEND_WEIGHT: start 0.2658438089, range [0.22, 0.32], sigma 0.02
+- TOMATOES.FAIR_ALPHA_WEIGHT: start 0.420735319, range [0.36, 0.48], sigma 0.02
+- TOMATOES.REGIME_EWMA_ALPHA: start 0.2402714583, range [0.18, 0.3], sigma 0.02
+- TOMATOES.LEAN_SCORE: start 0.445547723, range [0.38, 0.5], sigma 0.02
+- TOMATOES.STRONG_SCORE: start 1.0628205438, range [0.98, 1.14], sigma 0.025
+- TOMATOES.REENTRY_IMBALANCE_THRESHOLD: start 0.13, range [0.08, 0.18], sigma 0.015
+- TOMATOES.REENTRY_EDGE_BONUS: start 0.08, range [0.02, 0.18], sigma 0.025
+- TOMATOES.REENTRY_SIZE_BONUS: start 1.0, range [0.0, 3.0], sigma 0.5
+- TOMATOES.DEFENSIVE_VOL_THRESHOLD: start 3.3735488393, range [3.0, 3.8], sigma 0.1
+
+Baseline:
+- objective: 34849.989
+- total: 31749.000
+- tomatoes_total: 16858.000
+- min_day_total: 15825.000
+- avg_inventory: 12.802
+
+Best:
+- candidate_id: v40_8_2-phase1-baseline
+- objective: 34849.989
+- total: 31749.000
+- tomatoes_total: 16858.000
+- min_day_total: 15825.000
+- avg_inventory: 12.802
+
+Best Parameters:
+- TOMATOES.BASE_TAKE_EDGE: 0.751627
+- TOMATOES.BASE_QUOTE_EDGE: 2.647005
+- TOMATOES.ALPHA_EDGE_SCALE: 1.363402
+- TOMATOES.ALPHA_BLEND_WEIGHT: 0.265844
+- TOMATOES.FAIR_ALPHA_WEIGHT: 0.420735
+- TOMATOES.REGIME_EWMA_ALPHA: 0.240271
+- TOMATOES.LEAN_SCORE: 0.445548
+- TOMATOES.STRONG_SCORE: 1.062821
+- TOMATOES.REENTRY_IMBALANCE_THRESHOLD: 0.130000
+- TOMATOES.REENTRY_EDGE_BONUS: 0.080000
+- TOMATOES.REENTRY_SIZE_BONUS: 1.000000
+- TOMATOES.DEFENSIVE_VOL_THRESHOLD: 3.373549
+
+Per-Day Best Candidate:
+- day -2: total 15924.000, tomatoes 8756.000, emeralds 7168.000, avg_inventory 13.074
+- day -1: total 15825.000, tomatoes 8102.000, emeralds 7723.000, avg_inventory 12.531

@@ -1,15 +1,19 @@
-from datamodel import OrderDepth, Order, Trade, TradingState
+from datamodel import OrderDepth, Order, TradingState
 from typing import Dict, List, Optional, Tuple
 import json
 import math
 
 
+def clip(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
 DEFAULT_EMERALDS_PARAMS = {
     "REFERENCE_PRICE": 10000.0,
-    "REFERENCE_WEIGHT": 0.80,
-    "MID_WEIGHT": 0.20,
+    "REFERENCE_WEIGHT": 0.8,
+    "MID_WEIGHT": 0.2,
     "MICRO_WEIGHT": 0.00,
-    "INVENTORY_SKEW": 0.12,
+    "INVENTORY_SKEW": 0.0328922991,
     "TAKE_TIER_1_DISTANCE": 1.0,
     "TAKE_TIER_2_DISTANCE": 4.0,
     "TAKE_TIER_3_DISTANCE": 8.0,
@@ -21,7 +25,7 @@ DEFAULT_EMERALDS_PARAMS = {
     "DISREGARD_EDGE": 2.0,
     "JOIN_EDGE": 1.0,
     "DEFAULT_EDGE": 8.0,
-    "SOFT_LIMIT_RATIO": 0.25,
+    "SOFT_LIMIT_RATIO": 0.6357999832,
 }
 
 
@@ -32,21 +36,21 @@ DEFAULT_TOMATOES_PARAMS = {
     "REGRESSION_WEIGHT": 0.20,
     "RESIDUAL_REVERT_WEIGHT": 0.12,
     "IMBALANCE_WEIGHT": 0.35,
-    "INVENTORY_SKEW": 0.035,
-    "BASE_TAKE_EDGE": 1.25,
-    "BASE_QUOTE_EDGE": 2.75,
-    "MAX_QUOTE_EDGE": 5.0,
+    "INVENTORY_SKEW": 0.005,
+    "BASE_TAKE_EDGE": 0.7516267301,
+    "BASE_QUOTE_EDGE": 2.6470054123,
+    "MAX_QUOTE_EDGE": 9.0,
     "PASSIVE_SIZE": 8,
     "MAX_TAKE_SIZE": 10,
     "REGRESSION_WINDOW": 8,
-    "REGRESSION_HORIZON": 2.0,
+    "REGRESSION_HORIZON": 0.5,
     "TREND_EDGE_THRESHOLD": 1.00,
     "STRONG_TREND_EDGE": 2.50,
     "FIT_THRESHOLD": 0.45,
     "TREND_IMBALANCE_THRESHOLD": 0.12,
     "TOXIC_SPREAD_THRESHOLD": 15.0,
     "TOXIC_VOLATILITY_THRESHOLD": 3.2,
-    "SOFT_LIMIT_RATIO": 0.65,
+    "SOFT_LIMIT_RATIO": 0.5489928521,
     "POSITION_BIAS_DIVISOR": 12.0,
     "TREND_FAIR_BONUS": 0.25,
     "TREND_ENTRY_TAKE_BONUS": 3.0,
@@ -56,39 +60,69 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_PASSIVE_SIZE_BONUS": 2.0,
     "VOL_CONTROL_WINDOW": 8,
     "TIME_HORIZON_TICKS": 10000.0,
-    "GAMMA_RANGE": 0.34,
+    "GAMMA_RANGE": 0.69283327,
     "GAMMA_TREND": 0.10,
     "GAMMA_VOLATILE": 0.40,
-    "RESERVATION_SCALE": 0.12,
-    "SPREAD_VOL_COEF": 0.90,
-    "SPREAD_INV_COEF": 0.42,
-    "SPREAD_TIME_COEF": 0.90,
+    "RESERVATION_SCALE": 0.02,
+    "SPREAD_VOL_COEF": 0.1,
+    "SPREAD_INV_COEF": 1.1081637,
+    "SPREAD_TIME_COEF": 1.7791177,
     "TREND_RESERVATION_BIAS": 0.04,
-    "RANGE_RESERVATION_BIAS": 0.20,
-    "ALPHA_EDGE_SCALE": 1.06,
-    "ALPHA_IMBALANCE_SCALE": 1.16,
+    "RANGE_RESERVATION_BIAS": 0.26486122,
+    "ALPHA_EDGE_SCALE": 1.3634015054,
+    "ALPHA_IMBALANCE_SCALE": 0.7,
     "ALPHA_THRESHOLD_SCALE": 1.03,
     "TREND_SELL_HOLD_EXTRA": 0.24,
     "TREND_BUY_TAKE_EXTRA": 0.08,
     "TREND_QUOTE_LIFT_EXTRA": 1.0,
     "HOLD_TIME_COEF": 0.08,
     "HOLD_VOL_COEF": 0.0,
-    "FLOW_ML_WEIGHT": 0.22,
-    "FLOW_OFI_WEIGHT": 0.18,
-    "FLOW_FRONT_WEIGHT": 0.12,
-    "FLOW_SHIFT_WEIGHT": 0.10,
-    "FLOW_TAKE_RELIEF": 0.14,
-    "STRETCH_BAD_STATE": 1.35,
-    "BAD_STATE_PASSIVE_VETO": 0.10,
-    "BAD_STATE_TAKER_MARGIN": 0.35,
-    "BAD_STATE_QUOTE_WIDEN": 1.0,
-    "QUOTE_MEMORY_TICKS": 1200,
+    "ALPHA_REFERENCE_WEIGHT": 0.45,
+    "ALPHA_MID_WEIGHT": 0.20,
+    "ALPHA_MICRO_WEIGHT": 0.25,
+    "ALPHA_FLOW_WEIGHT": 0.10,
+    "ALPHA_FLOW_SPREAD_SCALE": 0.50,
+    "ALPHA_BLEND_WEIGHT": 0.2658438089,
+    "FAIR_ALPHA_WEIGHT": 0.420735319,
+    "ALPHA_CAP": 2.20,
+    "RANGE_ALPHA_DAMP": 0.3583177833,
+    "CONFLICT_ALPHA_DAMP": 0.4798002143,
+    "MOMENTUM_ALPHA_DAMP": 0.7,
+    "POSITION_ALPHA_DAMP_START": 15.3003931233,
+    "POSITION_ALPHA_DAMP_END": 26.7466168674,
+    "CALM_SPREAD_THRESHOLD": 12.0,
+    "CALM_VOL_THRESHOLD": 1.8,
+    "CALM_IMBALANCE_THRESHOLD": 0.20,
+    "FAST_VOL_THRESHOLD": 2.4,
+    "FAST_IMBALANCE_THRESHOLD": 0.32,
+    "FAST_MICRO_BONUS": 0.06,
+    "FAST_IMBALANCE_BONUS": 0.14,
+    "FAST_ALPHA_BONUS": 0.08,
+    "FAST_TAKE_EDGE_BONUS": 0.12,
+    "FAST_TAKE_SIZE_BONUS": 2.0,
+    "FAST_TARGET_BONUS": 4.0,
+    "CALM_JOIN_IMPROVEMENT": 1.0,
+    "CALM_QUOTE_EDGE_MULT": 0.94,
+    "FAST_QUOTE_EDGE_MULT": 1.02,
+    "INVENTORY_EDGE_PRESSURE": 0.42,
+    "INVENTORY_SIZE_PRESSURE": 0.35,
     "MARKOUT_DELAY_TICKS": 400,
-    "ADVERSE_DECAY": 0.82,
-    "ADVERSE_MAX": 1.75,
-    "ADVERSE_STEP": 0.28,
-    "PASSIVE_MARKOUT_DECAY": 0.85,
-    "PASSIVE_MARKOUT_BLOCK": -0.45,
+    "FEEDBACK_EWMA_ALPHA": 0.18,
+    "GOOD_FILL_TAKE_BONUS": 0.04,
+    "BAD_FILL_TAKE_PENALTY": 0.20,
+    "BAD_FILL_QUOTE_PENALTY": 0.06,
+    "REGIME_EWMA_ALPHA": 0.2402714583,
+    "LEAN_SCORE": 0.445547723,
+    "STRONG_SCORE": 1.0628205438,
+    "DEFENSIVE_VOL_THRESHOLD": 3.3735488393,
+    "STATE_EARLY_WEIGHT": 0.35,
+    "STATE_FULL_START_TS": 100000.0,
+    "STATE_FULL_END_TS": 130000.0,
+    "BUY_RANGE_RELIEF": 0.10,
+    "BUY_CONFLICT_RELIEF": 0.12,
+    "REENTRY_IMBALANCE_THRESHOLD": 0.15,
+    "REENTRY_EDGE_BONUS": 0.12,
+    "REENTRY_SIZE_BONUS": 2.0,
 }
 
 
@@ -101,11 +135,13 @@ class BaseProductTrader:
         state: TradingState,
         mid_history: Dict[str, List[float]],
         position_limit: int,
+        memory: Optional[Dict[str, object]] = None,
     ) -> None:
         self.product = product
         self.state = state
         self.mid_history = mid_history
         self.position_limit = position_limit
+        self.memory: Dict[str, object] = dict(memory) if isinstance(memory, dict) else {}
         self.orders: List[Order] = []
 
         self.order_depth: Optional[OrderDepth] = state.order_depths.get(product)
@@ -233,6 +269,9 @@ class BaseProductTrader:
     def run(self) -> List[Order]:
         return self.orders
 
+    def export_memory(self) -> Dict[str, object]:
+        return self.memory
+
 
 class EmeraldsTrader(BaseProductTrader):
     PARAMETER_DEFAULTS = DEFAULT_EMERALDS_PARAMS
@@ -243,9 +282,10 @@ class EmeraldsTrader(BaseProductTrader):
         state: TradingState,
         mid_history: Dict[str, List[float]],
         position_limit: int,
+        memory: Optional[Dict[str, object]] = None,
         params: Optional[Dict[str, float]] = None,
     ) -> None:
-        super().__init__(product, state, mid_history, position_limit)
+        super().__init__(product, state, mid_history, position_limit, memory)
         self.apply_parameter_overrides(self.PARAMETER_DEFAULTS, params)
         self.soft_limit = int(position_limit * self.SOFT_LIMIT_RATIO)
 
@@ -433,145 +473,53 @@ class TomatoesTrader(BaseProductTrader):
         state: TradingState,
         mid_history: Dict[str, List[float]],
         position_limit: int,
-        params: Optional[Dict[str, float]] = None,
         memory: Optional[Dict[str, object]] = None,
+        params: Optional[Dict[str, float]] = None,
     ) -> None:
-        super().__init__(product, state, mid_history, position_limit)
+        super().__init__(product, state, mid_history, position_limit, memory)
         self.apply_parameter_overrides(self.PARAMETER_DEFAULTS, params)
         self.soft_limit = int(position_limit * self.SOFT_LIMIT_RATIO)
-        self.memory = memory or {}
-        self.resting_quotes = self.load_resting_quotes()
-        self.pending_fills = self.load_pending_fills()
-        self.passive_markout = self.load_passive_markout()
-        self.buy_bias = float(self.memory.get("adverse_buy_bias", 0.0)) * self.ADVERSE_DECAY
-        self.sell_bias = float(self.memory.get("adverse_sell_bias", 0.0)) * self.ADVERSE_DECAY
-        self.last_fill_ts = int(self.memory.get("last_fill_ts", -1))
-        self.next_memory: Dict[str, object] = dict(self.memory)
+        self.prev_mid = float(self.memory.get("prev_mid", self.mid or 0.0))
+        self.ewma_mid = float(self.memory.get("ewma_mid", self.mid or 0.0))
+        self.ewma_return = float(self.memory.get("ewma_return", 0.0))
+        self.ewma_abs_return = float(self.memory.get("ewma_abs_return", 0.0))
+        self.ewma_micro_gap = float(self.memory.get("ewma_micro_gap", 0.0))
+        self.ewma_imbalance = float(self.memory.get("ewma_imbalance", 0.0))
+        self.regime_score = float(self.memory.get("regime_score", 0.0))
+        self.mode = str(self.memory.get("mode", "neutral"))
+        self.fill_quality_ewma = float(self.memory.get("fill_quality_ewma", 0.0))
+        self.adverse_ewma = float(self.memory.get("adverse_ewma", 0.0))
+        pending = self.memory.get("pending_fills", [])
+        self.pending_fills: List[Dict[str, float]] = []
+        if isinstance(pending, list):
+            for item in pending:
+                if isinstance(item, dict):
+                    try:
+                        self.pending_fills.append(
+                            {
+                                "timestamp": float(item.get("timestamp", 0.0)),
+                                "price": float(item.get("price", 0.0)),
+                                "side": float(item.get("side", 0.0)),
+                                "qty": float(item.get("qty", 0.0)),
+                            }
+                        )
+                    except (TypeError, ValueError):
+                        continue
+        seen_raw = self.memory.get("seen_trade_keys", [])
+        self.seen_trade_keys = [str(value) for value in seen_raw[-24:]] if isinstance(seen_raw, list) else []
 
-    def current_book_snapshot(self) -> Dict[str, List[List[int]]]:
-        return {
-            "buy": [[int(price), int(volume)] for price, volume in self.buy_levels[:3]],
-            "sell": [[int(price), int(volume)] for price, volume in self.sell_levels[:3]],
-        }
+    def update_state(self) -> None:
+        alpha = self.REGIME_EWMA_ALPHA
+        mid = float(self.mid)
+        micro_gap = float(self.micro) - mid
+        ret = mid - self.prev_mid
 
-    def previous_book_snapshot(self) -> Dict[str, List[List[int]]]:
-        raw = self.memory.get("book")
-        if not isinstance(raw, dict):
-            return {"buy": [], "sell": []}
-        snapshot = {"buy": [], "sell": []}
-        for side in ("buy", "sell"):
-            values = raw.get(side, [])
-            if isinstance(values, list):
-                snapshot[side] = [
-                    [int(level[0]), int(level[1])]
-                    for level in values
-                    if isinstance(level, list) and len(level) == 2
-                ]
-        return snapshot
-
-    def load_resting_quotes(self) -> List[Dict[str, object]]:
-        raw = self.memory.get("resting_quotes")
-        if not isinstance(raw, list):
-            return []
-        quotes: List[Dict[str, object]] = []
-        for item in raw:
-            if not isinstance(item, dict):
-                continue
-            try:
-                quotes.append(
-                    {
-                        "side": str(item.get("side", "")),
-                        "price": int(item.get("price", 0)),
-                        "timestamp": int(item.get("timestamp", 0)),
-                        "mid": float(item.get("mid", 0.0)),
-                        "qty": int(item.get("qty", 0)),
-                        "filled_qty": int(item.get("filled_qty", 0)),
-                    }
-                )
-            except (TypeError, ValueError):
-                continue
-        return quotes[-12:]
-
-    def load_pending_fills(self) -> List[Dict[str, float]]:
-        raw = self.memory.get("pending_fills")
-        if not isinstance(raw, list):
-            return []
-        fills: List[Dict[str, float]] = []
-        for item in raw:
-            if not isinstance(item, dict):
-                continue
-            try:
-                fills.append(
-                    {
-                        "side": str(item.get("side", "")),
-                        "fill_ts": float(item.get("fill_ts", 0.0)),
-                        "fill_mid": float(item.get("fill_mid", 0.0)),
-                        "fill_price": float(item.get("fill_price", 0.0)),
-                        "qty": float(item.get("qty", 0.0)),
-                    }
-                )
-            except (TypeError, ValueError):
-                continue
-        return fills[-20:]
-
-    def load_passive_markout(self) -> Dict[str, float]:
-        raw = self.memory.get("passive_markout")
-        if not isinstance(raw, dict):
-            return {"BUY": 0.0, "SELL": 0.0}
-        return {
-            "BUY": float(raw.get("BUY", 0.0)),
-            "SELL": float(raw.get("SELL", 0.0)),
-        }
-
-    def multi_level_imbalance(self) -> float:
-        bid_total = 0.0
-        ask_total = 0.0
-        for index, (_price, volume) in enumerate(self.buy_levels[:3]):
-            bid_total += volume / (index + 1)
-        for index, (_price, volume) in enumerate(self.sell_levels[:3]):
-            ask_total += volume / (index + 1)
-        total = bid_total + ask_total
-        if total <= 1e-9:
-            return 0.0
-        return (bid_total - ask_total) / total
-
-    def flow_features(self, previous_book: Dict[str, List[List[int]]]) -> Tuple[float, float, float]:
-        total_pressure = 0.0
-        front_pressure = 0.0
-        shift_pressure = 0.0
-
-        current_book = self.current_book_snapshot()
-        for side, sign in (("buy", 1.0), ("sell", -1.0)):
-            prev_levels = previous_book.get(side, [])
-            curr_levels = current_book.get(side, [])
-            prev_map = {int(price): int(volume) for price, volume in prev_levels}
-            curr_map = {int(price): int(volume) for price, volume in curr_levels}
-
-            for index, (price, volume) in enumerate(curr_levels[:3]):
-                weight = 1.0 / (index + 1)
-                total_pressure += sign * weight * (volume - prev_map.get(int(price), 0))
-            for index, (price, volume) in enumerate(prev_levels[:3]):
-                if int(price) not in curr_map:
-                    weight = 1.0 / (index + 1)
-                    total_pressure -= sign * weight * volume
-
-            prev_top_price = int(prev_levels[0][0]) if prev_levels else None
-            curr_top_price = int(curr_levels[0][0]) if curr_levels else None
-            prev_top_vol = int(prev_levels[0][1]) if prev_levels else 0
-            curr_top_vol = int(curr_levels[0][1]) if curr_levels else 0
-
-            front_pressure += sign * (curr_top_vol - prev_top_vol)
-            if prev_top_price is not None and curr_top_price is not None:
-                if side == "buy":
-                    shift_pressure += 0.8 if curr_top_price > prev_top_price else (-0.8 if curr_top_price < prev_top_price else 0.0)
-                else:
-                    shift_pressure += 0.8 if curr_top_price > prev_top_price else (-0.8 if curr_top_price < prev_top_price else 0.0)
-
-        return (
-            max(-2.0, min(2.0, total_pressure / 30.0)),
-            max(-2.0, min(2.0, front_pressure / 24.0)),
-            max(-1.5, min(1.5, shift_pressure)),
-        )
+        self.ewma_mid = (1.0 - alpha) * self.ewma_mid + alpha * mid
+        self.ewma_return = (1.0 - alpha) * self.ewma_return + alpha * ret
+        self.ewma_abs_return = (1.0 - alpha) * self.ewma_abs_return + alpha * abs(ret)
+        self.ewma_micro_gap = (1.0 - alpha) * self.ewma_micro_gap + alpha * micro_gap
+        self.ewma_imbalance = (1.0 - alpha) * self.ewma_imbalance + alpha * self.imbalance
+        self.prev_mid = mid
 
     def regression_metrics(self) -> Tuple[float, float, float, float]:
         history = self.mid_history.get(self.product, [])
@@ -599,117 +547,265 @@ class TomatoesTrader(BaseProductTrader):
         volatility = sum(diffs) / len(diffs) if diffs else 0.0
         return predicted_now, predicted_next, fit_quality, volatility
 
-    def stretch(self, volatility: float) -> float:
-        return (float(self.mid) - float(self.recent_average)) / max(1.0, volatility)
-
-    def attribute_passive_fills(self) -> None:
-        old_last_fill_ts = self.last_fill_ts
-        max_seen_ts = self.last_fill_ts
-        quotes = [quote.copy() for quote in self.resting_quotes]
-        new_pending: List[Dict[str, float]] = []
-
-        for trade in self.state.own_trades.get(self.product, []):
-            if not isinstance(trade, Trade):
-                continue
-            trade_ts = int(getattr(trade, "timestamp", -1))
-            if trade_ts < old_last_fill_ts:
-                continue
-
-            max_seen_ts = max(max_seen_ts, trade_ts)
-
-            side = None
-            if getattr(trade, "buyer", None) == "SUBMISSION":
-                side = "BUY"
-            elif getattr(trade, "seller", None) == "SUBMISSION":
-                side = "SELL"
-            if side is None:
-                continue
-
-            price = int(getattr(trade, "price", 0))
-            remaining_trade_qty = max(1, abs(int(getattr(trade, "quantity", 0))))
-
-            for quote in reversed(quotes):
-                if remaining_trade_qty <= 0:
-                    break
-                if quote["side"] != side or int(quote["price"]) != price:
-                    continue
-                if trade_ts < int(quote["timestamp"]) or trade_ts - int(quote["timestamp"]) > int(self.QUOTE_MEMORY_TICKS):
-                    continue
-
-                remaining_quote_qty = int(quote["qty"]) - int(quote["filled_qty"])
-                if remaining_quote_qty <= 0:
-                    continue
-
-                matched_qty = min(remaining_trade_qty, remaining_quote_qty)
-                quote["filled_qty"] = int(quote["filled_qty"]) + matched_qty
-                new_pending.append(
-                    {
-                        "side": side,
-                        "fill_ts": float(trade_ts),
-                        "fill_mid": float(self.mid),
-                        "fill_price": float(price),
-                        "qty": float(matched_qty),
-                    }
-                )
-                remaining_trade_qty -= matched_qty
-
-        trimmed_quotes: List[Dict[str, object]] = []
-        for quote in quotes:
-            if self.current_ts - int(quote["timestamp"]) > int(self.QUOTE_MEMORY_TICKS):
-                continue
-            if int(quote["filled_qty"]) >= int(quote["qty"]):
-                continue
-            trimmed_quotes.append(quote)
-
-        self.last_fill_ts = max_seen_ts
-        self.resting_quotes = trimmed_quotes[-12:]
-        self.pending_fills.extend(new_pending)
-        self.pending_fills = self.pending_fills[-20:]
-
-    def process_matured_passive_fills(self, volatility: float) -> None:
-        remaining: List[Dict[str, float]] = []
-        for fill in self.pending_fills:
-            age = self.current_ts - float(fill["fill_ts"])
-            if age < float(self.MARKOUT_DELAY_TICKS):
-                remaining.append(fill)
-                continue
-
-            side = str(fill["side"])
-            side_sign = 1.0 if side == "BUY" else -1.0
-            fill_mid = float(fill["fill_mid"])
-            fill_price = float(fill["fill_price"])
-            qty = float(fill["qty"])
-
-            mid_markout = side_sign * (float(self.mid) - fill_mid)
-            price_markout = side_sign * (float(self.mid) - fill_price)
-            combined_markout = 0.30 * mid_markout + 0.70 * price_markout
-
-            self.passive_markout[side] = (
-                self.PASSIVE_MARKOUT_DECAY * self.passive_markout[side]
-                + (1.0 - self.PASSIVE_MARKOUT_DECAY) * combined_markout
-            )
-
-            step = min(
-                self.ADVERSE_MAX,
-                self.ADVERSE_STEP * min(2.5, abs(combined_markout) / max(1.0, volatility)) * max(1.0, qty / 4.0),
-            )
-            if side == "BUY":
-                if combined_markout < 0:
-                    self.buy_bias = min(self.ADVERSE_MAX, self.buy_bias + step)
-                else:
-                    self.buy_bias = max(0.0, self.buy_bias - 0.5 * step)
-            else:
-                if combined_markout < 0:
-                    self.sell_bias = min(self.ADVERSE_MAX, self.sell_bias + step)
-                else:
-                    self.sell_bias = max(0.0, self.sell_bias - 0.5 * step)
-
-        self.pending_fills = remaining[-20:]
-
     def time_fraction_remaining(self) -> float:
         timestamp = float(getattr(self.state, "timestamp", 0))
         remaining_ticks = max(0.0, self.TIME_HORIZON_TICKS - (timestamp / 100.0))
         return remaining_ticks / self.TIME_HORIZON_TICKS
+
+    def _trade_key(self, trade: object) -> str:
+        timestamp = int(getattr(trade, "timestamp", -1))
+        price = int(getattr(trade, "price", 0))
+        quantity = int(getattr(trade, "quantity", 0))
+        buyer = "1" if getattr(trade, "buyer", None) == "SUBMISSION" else "0"
+        seller = "1" if getattr(trade, "seller", None) == "SUBMISSION" else "0"
+        return f"{timestamp}:{price}:{quantity}:{buyer}:{seller}"
+
+    def update_fill_feedback(self) -> None:
+        current_ts = float(getattr(self.state, "timestamp", 0))
+        spread_scale = max(1.0, float(self.spread) / 2.0)
+        still_pending: List[Dict[str, float]] = []
+        for fill in self.pending_fills:
+            if current_ts - fill["timestamp"] < self.MARKOUT_DELAY_TICKS:
+                still_pending.append(fill)
+                continue
+            signed_markout = (float(self.mid) - fill["price"]) * fill["side"]
+            scaled_markout = max(-2.0, min(2.0, signed_markout / spread_scale))
+            self.fill_quality_ewma = (
+                (1.0 - self.FEEDBACK_EWMA_ALPHA) * self.fill_quality_ewma
+                + self.FEEDBACK_EWMA_ALPHA * scaled_markout
+            )
+            adverse_obs = 1.0 if signed_markout < -0.5 else 0.0
+            self.adverse_ewma = (
+                (1.0 - self.FEEDBACK_EWMA_ALPHA) * self.adverse_ewma
+                + self.FEEDBACK_EWMA_ALPHA * adverse_obs
+            )
+        self.pending_fills = still_pending
+
+        for trade in self.state.own_trades.get(self.product, []):
+            key = self._trade_key(trade)
+            if key in self.seen_trade_keys:
+                continue
+            self.seen_trade_keys.append(key)
+            quantity = max(1, abs(int(getattr(trade, "quantity", 0))))
+            if getattr(trade, "buyer", None) == "SUBMISSION":
+                side = 1.0
+            elif getattr(trade, "seller", None) == "SUBMISSION":
+                side = -1.0
+            else:
+                continue
+            self.pending_fills.append(
+                {
+                    "timestamp": float(getattr(trade, "timestamp", 0)),
+                    "price": float(getattr(trade, "price", 0)),
+                    "side": side,
+                    "qty": float(quantity),
+                }
+            )
+        self.seen_trade_keys = self.seen_trade_keys[-24:]
+
+    def inventory_pressure(self, side: Optional[str] = None) -> float:
+        position = self.projected_position()
+        ratio = min(1.25, abs(position) / max(1, self.soft_limit))
+        if side is None:
+            return ratio
+        if side == "BUY" and position <= 0:
+            return 0.25 * ratio
+        if side == "SELL" and position >= 0:
+            return 0.25 * ratio
+        return ratio
+
+    def alpha_score(self, predicted_edge: float) -> float:
+        scale = max(0.6, self.ewma_abs_return, abs(predicted_edge))
+        raw = (
+            0.70 * (predicted_edge / scale)
+            + 0.20 * (self.ewma_micro_gap / scale)
+            + 0.10 * self.ewma_imbalance
+        )
+        self.regime_score = 0.75 * self.regime_score + 0.25 * raw
+        return clip(self.regime_score, -3.0, 3.0)
+
+    def state_influence_weight(self) -> float:
+        timestamp = float(getattr(self.state, "timestamp", 0))
+        if timestamp <= self.STATE_FULL_START_TS:
+            return self.STATE_EARLY_WEIGHT
+        if timestamp >= self.STATE_FULL_END_TS:
+            return 1.0
+        span = max(1.0, self.STATE_FULL_END_TS - self.STATE_FULL_START_TS)
+        ratio = (timestamp - self.STATE_FULL_START_TS) / span
+        return self.STATE_EARLY_WEIGHT + (1.0 - self.STATE_EARLY_WEIGHT) * ratio
+
+    def classify_mode(self, score: float) -> str:
+        prev = self.mode
+        if self.adverse_ewma > 0.70:
+            return "defensive"
+        if self.ewma_abs_return >= self.DEFENSIVE_VOL_THRESHOLD and abs(score) < self.LEAN_SCORE:
+            return "defensive"
+
+        enter_lean = self.LEAN_SCORE
+        exit_lean = self.LEAN_SCORE * 0.65
+        enter_strong = self.STRONG_SCORE
+        exit_strong = self.STRONG_SCORE * 0.75
+
+        if prev == "strong_up" and score >= exit_strong:
+            return "strong_up"
+        if prev == "lean_up" and score >= exit_lean:
+            return "lean_up"
+        if prev == "strong_down" and score <= -exit_strong:
+            return "strong_down"
+        if prev == "lean_down" and score <= -exit_lean:
+            return "lean_down"
+
+        if score >= enter_strong:
+            return "strong_up"
+        if score >= enter_lean:
+            return "lean_up"
+        if score <= -enter_strong:
+            return "strong_down"
+        if score <= -enter_lean:
+            return "lean_down"
+        return "neutral"
+
+    def market_style(
+        self,
+        regime: str,
+        predicted_edge: float,
+        fit_quality: float,
+        volatility: float,
+    ) -> Dict[str, float]:
+        calm = (
+            regime == "range"
+            and float(self.spread) <= self.CALM_SPREAD_THRESHOLD
+            and volatility <= self.CALM_VOL_THRESHOLD
+            and abs(self.imbalance) <= self.CALM_IMBALANCE_THRESHOLD
+        )
+        fast = (
+            regime in {"trend_up", "trend_down"}
+            or volatility >= self.FAST_VOL_THRESHOLD
+            or abs(self.imbalance) >= self.FAST_IMBALANCE_THRESHOLD
+        )
+        style = {
+            "micro_bonus": 0.0,
+            "imbalance_bonus": 0.0,
+            "alpha_bonus": 0.0,
+            "quote_mult": 1.0,
+            "join_ticks": 0.0,
+            "take_edge_shift": 0.0,
+            "take_size_bonus": 0.0,
+            "target_bonus": 0.0,
+        }
+        if calm:
+            style["quote_mult"] *= self.CALM_QUOTE_EDGE_MULT
+            if abs(self.projected_position()) <= max(6, int(0.25 * self.soft_limit)) and self.adverse_ewma < 0.45:
+                style["join_ticks"] = self.CALM_JOIN_IMPROVEMENT
+        elif fast:
+            style["micro_bonus"] = self.FAST_MICRO_BONUS
+            style["imbalance_bonus"] = self.FAST_IMBALANCE_BONUS
+            style["alpha_bonus"] = self.FAST_ALPHA_BONUS
+            style["quote_mult"] *= self.FAST_QUOTE_EDGE_MULT
+            if fit_quality >= self.FIT_THRESHOLD and abs(self.imbalance) >= self.TREND_IMBALANCE_THRESHOLD:
+                style["take_edge_shift"] -= self.FAST_TAKE_EDGE_BONUS
+                style["take_size_bonus"] += self.FAST_TAKE_SIZE_BONUS
+                if self.inventory_pressure() <= 0.65:
+                    style["target_bonus"] += self.FAST_TARGET_BONUS
+
+        if self.fill_quality_ewma > 0.25 and self.adverse_ewma < 0.35:
+            style["take_edge_shift"] -= self.GOOD_FILL_TAKE_BONUS
+            style["quote_mult"] *= 0.97
+            style["take_size_bonus"] += 1.0
+        if self.adverse_ewma > 0.35:
+            style["take_edge_shift"] += self.BAD_FILL_TAKE_PENALTY * self.adverse_ewma
+            style["quote_mult"] *= 1.0 + (self.BAD_FILL_QUOTE_PENALTY * self.adverse_ewma)
+
+        return style
+
+    def hybrid_alpha(self, style: Dict[str, float]) -> Tuple[float, float]:
+        reference_price = float(self.recent_average)
+        half_spread = max(1.0, float(self.spread) / 2.0)
+        flow_signal = self.imbalance * half_spread * self.ALPHA_FLOW_SPREAD_SCALE
+        micro_weight = self.ALPHA_MICRO_WEIGHT + style["micro_bonus"]
+        flow_weight = self.ALPHA_FLOW_WEIGHT + style["alpha_bonus"]
+        hybrid_fair = (
+            self.ALPHA_REFERENCE_WEIGHT * reference_price
+            + self.ALPHA_MID_WEIGHT * float(self.mid)
+            + micro_weight * float(self.micro)
+            + flow_weight * (float(self.mid) + flow_signal)
+        )
+        alpha = hybrid_fair - float(self.mid)
+        alpha = max(-self.ALPHA_CAP, min(self.ALPHA_CAP, alpha))
+        return hybrid_fair, alpha
+
+    def guarded_hybrid_alpha(
+        self,
+        hybrid_alpha: float,
+        regression_edge: float,
+        regime: str,
+        state_weight: float,
+    ) -> float:
+        weight = 1.0
+        buy_relief = hybrid_alpha > 0
+
+        def scaled_damp(base: float, relief: float = 0.0) -> float:
+            damp = 1.0 - state_weight * (1.0 - base)
+            if relief > 0.0:
+                damp = min(1.0, damp + relief)
+            return damp
+
+        if regime == "range":
+            weight *= scaled_damp(self.RANGE_ALPHA_DAMP, self.BUY_RANGE_RELIEF if buy_relief else 0.0)
+
+        if hybrid_alpha * regression_edge < 0:
+            weight *= scaled_damp(self.CONFLICT_ALPHA_DAMP, self.BUY_CONFLICT_RELIEF if buy_relief else 0.0)
+
+        if hybrid_alpha * self.imbalance < 0:
+            weight *= scaled_damp(self.CONFLICT_ALPHA_DAMP, self.BUY_CONFLICT_RELIEF if buy_relief else 0.0)
+
+        if hybrid_alpha * self.momentum < 0:
+            momentum_relief = 0.5 * self.BUY_CONFLICT_RELIEF if buy_relief else 0.0
+            weight *= scaled_damp(self.MOMENTUM_ALPHA_DAMP, momentum_relief)
+
+        position = self.projected_position()
+        if hybrid_alpha * position > 0:
+            abs_pos = abs(position)
+            if abs_pos >= self.POSITION_ALPHA_DAMP_START:
+                if abs_pos >= self.POSITION_ALPHA_DAMP_END:
+                    weight *= 0.0
+                else:
+                    span = self.POSITION_ALPHA_DAMP_END - self.POSITION_ALPHA_DAMP_START
+                    ratio = (abs_pos - self.POSITION_ALPHA_DAMP_START) / max(1e-9, span)
+                    weight *= max(0.0, 1.0 - ratio)
+
+        return hybrid_alpha * weight
+
+    def trend_reentry_allowed(
+        self,
+        side: str,
+        regime: str,
+        predicted_edge: float,
+        fit_quality: float,
+    ) -> bool:
+        position = self.projected_position()
+        light_cap = max(8, int(0.30 * self.soft_limit))
+        if side == "BUY":
+            return (
+                regime == "trend_up"
+                and predicted_edge >= self.TREND_EDGE_THRESHOLD
+                and fit_quality >= max(0.40, self.FIT_THRESHOLD - 0.05)
+                and self.imbalance >= self.REENTRY_IMBALANCE_THRESHOLD
+                and float(self.micro) >= float(self.mid)
+                and self.momentum >= 0.0
+                and position <= light_cap
+                and self.adverse_ewma < 0.55
+            )
+        return (
+            regime == "trend_down"
+            and predicted_edge <= -self.TREND_EDGE_THRESHOLD
+            and fit_quality >= max(0.40, self.FIT_THRESHOLD - 0.05)
+            and self.imbalance <= -self.REENTRY_IMBALANCE_THRESHOLD
+            and float(self.micro) <= float(self.mid)
+            and self.momentum <= 0.0
+            and position >= -light_cap
+            and self.adverse_ewma < 0.55
+        )
 
     def control_gamma(self, regime: str) -> float:
         if regime == "trend_up" or regime == "trend_down":
@@ -748,8 +844,6 @@ class TomatoesTrader(BaseProductTrader):
         predicted_edge: float,
         fit_quality: float,
         volatility: float,
-        flow_alpha: float,
-        stretch: float,
     ) -> str:
         trend_threshold = self.TREND_EDGE_THRESHOLD * self.ALPHA_THRESHOLD_SCALE
         if float(self.spread) >= self.TOXIC_SPREAD_THRESHOLD and volatility >= self.TOXIC_VOLATILITY_THRESHOLD:
@@ -757,19 +851,17 @@ class TomatoesTrader(BaseProductTrader):
         if (
             predicted_edge >= trend_threshold
             and fit_quality >= self.FIT_THRESHOLD
-            and (self.imbalance >= self.TREND_IMBALANCE_THRESHOLD or flow_alpha >= 0.18)
-            and (self.momentum >= 0.75 or flow_alpha >= 0.30)
+            and self.imbalance >= self.TREND_IMBALANCE_THRESHOLD
+            and self.momentum >= 0.75
             and float(self.micro) >= float(self.mid)
-            and stretch <= 2.4
         ):
             return "trend_up"
         if (
             predicted_edge <= -trend_threshold
             and fit_quality >= self.FIT_THRESHOLD
-            and (self.imbalance <= -self.TREND_IMBALANCE_THRESHOLD or flow_alpha <= -0.18)
-            and (self.momentum <= -0.75 or flow_alpha <= -0.30)
+            and self.imbalance <= -self.TREND_IMBALANCE_THRESHOLD
+            and self.momentum <= -0.75
             and float(self.micro) <= float(self.mid)
-            and stretch >= -2.4
         ):
             return "trend_down"
         return "range"
@@ -784,8 +876,33 @@ class TomatoesTrader(BaseProductTrader):
             return -6, 6
         return -14, 14
 
-    def target_position(self, regime: str, predicted_edge: float, fit_quality: float) -> int:
+    def target_position(
+        self,
+        regime: str,
+        predicted_edge: float,
+        fit_quality: float,
+        style: Dict[str, float],
+        mode: str,
+    ) -> int:
         lower, upper = self.target_band(regime, predicted_edge, fit_quality)
+        if mode == "defensive":
+            return 0
+        if mode == "lean_up":
+            lower = max(lower, 8)
+            upper = min(self.soft_limit, upper + 2)
+        elif mode == "strong_up":
+            lower = max(lower, 18)
+            upper = min(self.soft_limit, upper + 4)
+        elif mode == "lean_down":
+            upper = min(upper, -8)
+            lower = max(-self.soft_limit, lower - 2)
+        elif mode == "strong_down":
+            upper = min(upper, -18)
+            lower = max(-self.soft_limit, lower - 4)
+        if regime == "trend_up":
+            upper = min(self.soft_limit, upper + int(style["target_bonus"]))
+        elif regime == "trend_down":
+            lower = max(-self.soft_limit, lower - int(style["target_bonus"]))
         position = self.projected_position()
         if position < lower:
             return lower
@@ -811,10 +928,11 @@ class TomatoesTrader(BaseProductTrader):
         target_position: int,
         predicted_now: float,
         predicted_next: float,
-        flow_alpha: float,
+        hybrid_alpha: float,
+        style: Dict[str, float],
     ) -> float:
         line_gap = predicted_now - float(self.mid)
-        scaled_imbalance = self.imbalance * self.ALPHA_IMBALANCE_SCALE
+        scaled_imbalance = self.imbalance * (self.ALPHA_IMBALANCE_SCALE + style["imbalance_bonus"])
         fair = (
             self.MID_WEIGHT * float(self.mid)
             + self.MICRO_WEIGHT * float(self.micro)
@@ -822,7 +940,7 @@ class TomatoesTrader(BaseProductTrader):
             + self.REGRESSION_WEIGHT * predicted_next
             + self.IMBALANCE_WEIGHT * scaled_imbalance
         )
-        fair += flow_alpha
+        fair += self.FAIR_ALPHA_WEIGHT * hybrid_alpha
         fair += (target_position - self.projected_position()) / self.POSITION_BIAS_DIVISOR
         if regime == "range":
             fair += self.RESIDUAL_REVERT_WEIGHT * line_gap
@@ -836,9 +954,10 @@ class TomatoesTrader(BaseProductTrader):
         target_position: int,
         predicted_now: float,
         predicted_next: float,
-        flow_alpha: float,
+        hybrid_alpha: float,
+        style: Dict[str, float],
     ) -> float:
-        fair = self.fair_value(regime, target_position, predicted_now, predicted_next, flow_alpha)
+        fair = self.fair_value(regime, target_position, predicted_now, predicted_next, hybrid_alpha, style)
         return fair - (self.projected_position() * self.INVENTORY_SKEW)
 
     def take_edge(
@@ -848,7 +967,7 @@ class TomatoesTrader(BaseProductTrader):
         predicted_edge: float,
         fit_quality: float,
         volatility: float,
-        flow_alpha: float,
+        style: Dict[str, float],
     ) -> float:
         edge = self.BASE_TAKE_EDGE
 
@@ -893,14 +1012,11 @@ class TomatoesTrader(BaseProductTrader):
         elif predicted_edge < 0 and side == "SELL":
             edge -= min(0.20, 0.05 * abs(predicted_edge) * max(0.5, fit_quality))
 
-        if flow_alpha > 0 and side == "BUY":
-            edge -= min(self.FLOW_TAKE_RELIEF, 0.10 * flow_alpha)
-        elif flow_alpha < 0 and side == "SELL":
-            edge -= min(self.FLOW_TAKE_RELIEF, 0.10 * abs(flow_alpha))
+        edge += style["take_edge_shift"]
+        edge += self.inventory_pressure(side) * self.INVENTORY_EDGE_PRESSURE * 0.25
+        return max(0.45, edge)
 
-        return max(0.5, edge)
-
-    def quote_edge(self, regime: str, volatility: float, fit_quality: float) -> float:
+    def quote_edge(self, regime: str, volatility: float, fit_quality: float, style: Dict[str, float]) -> float:
         tau = self.time_fraction_remaining()
         gamma = self.control_gamma(regime)
         edge = max(self.BASE_QUOTE_EDGE, float(self.spread) / 3.5)
@@ -917,6 +1033,8 @@ class TomatoesTrader(BaseProductTrader):
         edge += self.SPREAD_VOL_COEF * min(3.0, volatility)
         edge += self.SPREAD_INV_COEF * gamma * min(self.position_limit, abs(self.projected_position()))
         edge += self.SPREAD_TIME_COEF * gamma * tau
+        edge += self.inventory_pressure() * self.INVENTORY_EDGE_PRESSURE
+        edge *= style["quote_mult"]
         return min(self.MAX_QUOTE_EDGE, edge)
 
     def passive_quotes(
@@ -927,13 +1045,37 @@ class TomatoesTrader(BaseProductTrader):
         predicted_edge: float,
         fit_quality: float,
         volatility: float,
-        stretch: float,
+        style: Dict[str, float],
+        mode: str,
     ) -> Tuple[Optional[int], Optional[int]]:
-        buy_quote = math.floor(adjusted_fair - self.quote_edge(regime, volatility, fit_quality))
-        sell_quote = math.ceil(adjusted_fair + self.quote_edge(regime, volatility, fit_quality))
+        quote_edge = self.quote_edge(regime, volatility, fit_quality, style)
+        buy_quote = math.floor(adjusted_fair - quote_edge)
+        sell_quote = math.ceil(adjusted_fair + quote_edge)
         buy_quote, sell_quote = self.clamp_inside_spread(buy_quote, sell_quote)
 
         position = self.projected_position()
+        if style["join_ticks"] > 0:
+            if buy_quote is not None:
+                buy_quote = min(int(self.best_ask) - 1, buy_quote + int(style["join_ticks"]))
+            if sell_quote is not None:
+                sell_quote = max(int(self.best_bid) + 1, sell_quote - int(style["join_ticks"]))
+        if mode == "strong_up":
+            sell_quote = None
+            if buy_quote is not None:
+                buy_quote = min(int(self.best_ask) - 1, max(int(self.best_bid) + 1, buy_quote + 1))
+        elif mode == "strong_down":
+            buy_quote = None
+            if sell_quote is not None:
+                sell_quote = max(int(self.best_bid) + 1, min(int(self.best_ask) - 1, sell_quote - 1))
+        elif mode == "lean_up" and position <= target_position:
+            sell_quote = None
+        elif mode == "lean_down" and position >= target_position:
+            buy_quote = None
+        elif mode == "defensive":
+            if position > 0:
+                buy_quote = None
+            elif position < 0:
+                sell_quote = None
         if regime == "trend_up":
             if buy_quote is not None and position < target_position:
                 buy_quote = min(
@@ -961,15 +1103,9 @@ class TomatoesTrader(BaseProductTrader):
             buy_quote = None
             sell_quote = None
 
-        if self.is_bad_state(regime, volatility, stretch):
-            if buy_quote is not None and (self.buy_bias >= 0.9 or self.passive_markout["BUY"] <= self.PASSIVE_MARKOUT_BLOCK):
-                buy_quote -= int(self.BAD_STATE_QUOTE_WIDEN)
-            if sell_quote is not None and (self.sell_bias >= 0.9 or self.passive_markout["SELL"] <= self.PASSIVE_MARKOUT_BLOCK):
-                sell_quote += int(self.BAD_STATE_QUOTE_WIDEN)
-
         return self.clamp_inside_spread(buy_quote, sell_quote)
 
-    def passive_size(self, side: str, regime: str, volatility: float) -> int:
+    def passive_size(self, side: str, regime: str, volatility: float, style: Dict[str, float]) -> int:
         size = self.PASSIVE_SIZE
         if int(self.spread) >= 14:
             size += 1
@@ -993,11 +1129,11 @@ class TomatoesTrader(BaseProductTrader):
             elif position <= -20:
                 size = max(1, size - 2)
 
-        if side == "BUY" and (self.buy_bias >= 1.0 or self.passive_markout["BUY"] <= self.PASSIVE_MARKOUT_BLOCK):
+        size = int(round(size * max(0.45, 1.0 - (self.INVENTORY_SIZE_PRESSURE * self.inventory_pressure(side)))))
+        if self.fill_quality_ewma > 0.25 and self.adverse_ewma < 0.35 and style["join_ticks"] > 0:
+            size += 1
+        if self.adverse_ewma > 0.45:
             size = max(1, size - 2)
-        if side == "SELL" and (self.sell_bias >= 1.0 or self.passive_markout["SELL"] <= self.PASSIVE_MARKOUT_BLOCK):
-            size = max(1, size - 2)
-
         return size
 
     def allow_passive(self, side: str, regime: str) -> bool:
@@ -1008,99 +1144,9 @@ class TomatoesTrader(BaseProductTrader):
             return False
         if regime == "volatile" and abs(position) <= 6:
             return False
+        if self.adverse_ewma > 0.75 and self.inventory_pressure(side) > 0.65:
+            return False
         return True
-
-    def side_inventory_help(self, side: str, target_position: int) -> bool:
-        position = self.projected_position()
-        if side == "BUY":
-            return position < target_position
-        return position > target_position
-
-    def is_bad_state(self, regime: str, volatility: float, stretch: float) -> bool:
-        return (
-            regime == "volatile"
-            or abs(stretch) >= self.STRETCH_BAD_STATE
-            or self.toxicity(volatility) >= 0.75
-        )
-
-    def passive_expected_value(
-        self,
-        side: str,
-        quote: int,
-        adjusted_fair: float,
-        regime: str,
-        volatility: float,
-        stretch: float,
-        target_position: int,
-    ) -> float:
-        spread_capture = (adjusted_fair - quote) if side == "BUY" else (quote - adjusted_fair)
-        bias = self.buy_bias if side == "BUY" else self.sell_bias
-        markout = self.passive_markout[side]
-        inventory_help = self.side_inventory_help(side, target_position)
-
-        adverse_cost = 0.12
-        adverse_cost += 0.18 * self.toxicity(volatility)
-        adverse_cost += 0.14 * max(0.0, abs(stretch) - 1.0)
-        adverse_cost += 0.20 * bias
-        adverse_cost += 0.22 * max(0.0, -markout)
-
-        if inventory_help:
-            adverse_cost -= 0.08
-        if regime == "volatile":
-            adverse_cost += 0.18
-
-        return spread_capture - adverse_cost
-
-    def should_veto_passive(
-        self,
-        side: str,
-        ev: float,
-        regime: str,
-        volatility: float,
-        stretch: float,
-        target_position: int,
-    ) -> bool:
-        if not self.is_bad_state(regime, volatility, stretch):
-            return False
-
-        bias = self.buy_bias if side == "BUY" else self.sell_bias
-        markout = self.passive_markout[side]
-        inventory_help = self.side_inventory_help(side, target_position)
-
-        if ev < self.BAD_STATE_PASSIVE_VETO and not inventory_help:
-            return True
-        if markout <= self.PASSIVE_MARKOUT_BLOCK and not inventory_help:
-            return True
-        if bias >= 1.2 and regime == "volatile":
-            return True
-        return False
-
-    def should_veto_take(
-        self,
-        side: str,
-        regime: str,
-        predicted_edge: float,
-        volatility: float,
-        stretch: float,
-        take_margin: float,
-    ) -> bool:
-        if not self.is_bad_state(regime, volatility, stretch):
-            return False
-
-        aligned_trend = (
-            (regime == "trend_up" and side == "BUY")
-            or (regime == "trend_down" and side == "SELL")
-        )
-        if aligned_trend and abs(predicted_edge) >= self.STRONG_TREND_EDGE:
-            return False
-
-        required_margin = self.BAD_STATE_TAKER_MARGIN
-        if regime == "range":
-            required_margin += 0.10
-        if not aligned_trend:
-            required_margin += 0.12
-
-        return take_margin < required_margin
 
     def take_orders(
         self,
@@ -1110,37 +1156,53 @@ class TomatoesTrader(BaseProductTrader):
         predicted_edge: float,
         fit_quality: float,
         volatility: float,
-        stretch: float,
-        flow_alpha: float,
+        style: Dict[str, float],
+        mode: str,
     ) -> Tuple[bool, bool]:
         took_buy = False
         took_sell = False
+        reentry_buy = self.trend_reentry_allowed("BUY", regime, predicted_edge, fit_quality)
+        reentry_sell = self.trend_reentry_allowed("SELL", regime, predicted_edge, fit_quality)
 
-        buy_edge_threshold = self.take_edge("BUY", regime, predicted_edge, fit_quality, volatility, flow_alpha)
         if (
-            int(self.best_ask) <= adjusted_fair - buy_edge_threshold
+            int(self.best_ask) <= adjusted_fair - self.take_edge("BUY", regime, predicted_edge, fit_quality, volatility, style) - (self.REENTRY_EDGE_BONUS if reentry_buy else 0.0)
             and self.buy_capacity > 0
         ):
-            take_margin = adjusted_fair - int(self.best_ask) - buy_edge_threshold
-            take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_up" else 0)
-            if regime != "range" and self.projected_position() >= target_position:
+            take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_up" else 0) + int(style["take_size_bonus"])
+            if reentry_buy:
+                take_limit += int(self.REENTRY_SIZE_BONUS)
+            if mode == "strong_up":
+                take_limit += 2
+            elif mode == "strong_down":
+                take_limit = max(1, take_limit - 2)
+            take_limit = max(1, int(round(take_limit * max(0.55, 1.0 - (0.35 * self.inventory_pressure("BUY"))))))
+            if mode in {"lean_down", "strong_down", "defensive"}:
                 pass
-            elif self.should_veto_take("BUY", regime, predicted_edge, volatility, stretch, take_margin):
+            elif regime != "range" and self.projected_position() >= target_position and not reentry_buy:
                 pass
             else:
                 quantity = min(self.best_ask_volume, take_limit)
                 if regime != "range":
-                    quantity = min(quantity, max(1, target_position - self.projected_position()))
+                    desired_target = target_position
+                    if reentry_buy:
+                        desired_target = max(desired_target, max(8, int(0.35 * self.soft_limit)))
+                    quantity = min(quantity, max(1, desired_target - self.projected_position()))
                 before = self.buy_capacity
                 self.add_buy(int(self.best_ask), quantity)
                 took_buy = self.buy_capacity < before
 
-        sell_edge_threshold = self.take_edge("SELL", regime, predicted_edge, fit_quality, volatility, flow_alpha)
         if (
-            int(self.best_bid) >= adjusted_fair + sell_edge_threshold
+            int(self.best_bid) >= adjusted_fair + self.take_edge("SELL", regime, predicted_edge, fit_quality, volatility, style) + (self.REENTRY_EDGE_BONUS if reentry_sell else 0.0)
             and self.sell_capacity > 0
         ):
-            take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_down" else 0)
+            take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_down" else 0) + int(style["take_size_bonus"])
+            if reentry_sell:
+                take_limit += int(self.REENTRY_SIZE_BONUS)
+            if mode == "strong_down":
+                take_limit += 2
+            elif mode == "strong_up":
+                take_limit = max(1, take_limit - 2)
+            take_limit = max(1, int(round(take_limit * max(0.55, 1.0 - (0.35 * self.inventory_pressure("SELL"))))))
             required_bonus = 0.0
             if regime == "trend_up" and predicted_edge >= self.TREND_EDGE_THRESHOLD:
                 required_bonus += self.TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
@@ -1148,17 +1210,19 @@ class TomatoesTrader(BaseProductTrader):
                 required_bonus += self.STRONG_TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
             required_bonus += self.HOLD_TIME_COEF * self.time_fraction_remaining()
             required_bonus += self.HOLD_VOL_COEF * min(3.0, volatility)
-            take_margin = int(self.best_bid) - adjusted_fair - sell_edge_threshold
-            if regime != "range" and self.projected_position() <= target_position:
+            if mode in {"lean_up", "strong_up", "defensive"} and self.projected_position() <= max(target_position, 0):
                 pass
-            elif int(self.best_bid) < adjusted_fair + sell_edge_threshold + required_bonus:
+            elif regime != "range" and self.projected_position() <= target_position and not reentry_sell:
                 pass
-            elif self.should_veto_take("SELL", regime, predicted_edge, volatility, stretch, take_margin):
+            elif int(self.best_bid) < adjusted_fair + self.take_edge("SELL", regime, predicted_edge, fit_quality, volatility, style) + required_bonus - (self.REENTRY_EDGE_BONUS if reentry_sell else 0.0):
                 pass
             else:
                 quantity = min(self.best_bid_volume, take_limit)
                 if regime != "range":
-                    quantity = min(quantity, max(1, self.projected_position() - target_position))
+                    desired_target = target_position
+                    if reentry_sell:
+                        desired_target = min(desired_target, -max(8, int(0.35 * self.soft_limit)))
+                    quantity = min(quantity, max(1, self.projected_position() - desired_target))
                 before = self.sell_capacity
                 self.add_sell(int(self.best_bid), quantity)
                 took_sell = self.sell_capacity < before
@@ -1169,30 +1233,51 @@ class TomatoesTrader(BaseProductTrader):
         if not self.has_book():
             return self.orders
 
-        self.current_ts = int(getattr(self.state, "timestamp", 0))
-        self.attribute_passive_fills()
+        self.update_state()
+        self.update_fill_feedback()
         predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
-        previous_book = self.previous_book_snapshot()
-        ml_imbalance = self.multi_level_imbalance()
-        total_flow, front_flow, shift_flow = self.flow_features(previous_book)
-        flow_alpha = (
-            self.FLOW_ML_WEIGHT * ml_imbalance
-            + self.FLOW_OFI_WEIGHT * total_flow
-            + self.FLOW_FRONT_WEIGHT * front_flow
-            + self.FLOW_SHIFT_WEIGHT * shift_flow
+        state_weight = self.state_influence_weight()
+        provisional_style = {
+            "micro_bonus": 0.0,
+            "imbalance_bonus": 0.0,
+            "alpha_bonus": 0.0,
+            "quote_mult": 1.0,
+            "join_ticks": 0.0,
+            "take_edge_shift": 0.0,
+            "take_size_bonus": 0.0,
+            "target_bonus": 0.0,
+        }
+        _hybrid_fair, hybrid_alpha = self.hybrid_alpha(provisional_style)
+        regression_edge = (predicted_next - float(self.mid)) * self.ALPHA_EDGE_SCALE
+        provisional_edge = regression_edge
+        provisional_regime = self.classify_state(provisional_edge, fit_quality, volatility)
+        hybrid_alpha = self.guarded_hybrid_alpha(hybrid_alpha, regression_edge, provisional_regime, state_weight)
+        style = self.market_style(provisional_regime, provisional_edge, fit_quality, volatility)
+        _hybrid_fair, hybrid_alpha = self.hybrid_alpha(style)
+        hybrid_alpha = self.guarded_hybrid_alpha(hybrid_alpha, regression_edge, provisional_regime, state_weight)
+        predicted_edge = (
+            (1.0 - self.ALPHA_BLEND_WEIGHT) * regression_edge
+            + self.ALPHA_BLEND_WEIGHT * hybrid_alpha
         )
-        predicted_edge = (predicted_next - float(self.mid)) * self.ALPHA_EDGE_SCALE + flow_alpha
+        mode_score = self.alpha_score(predicted_edge)
+        self.mode = self.classify_mode(mode_score * state_weight)
         predicted_next = float(self.mid) + predicted_edge
-        stretch = self.stretch(volatility)
-        regime = self.classify_state(predicted_edge, fit_quality, volatility, flow_alpha, stretch)
-        target_position = self.target_position(regime, predicted_edge, fit_quality)
-        self.process_matured_passive_fills(volatility)
+        regime = self.classify_state(predicted_edge, fit_quality, volatility)
+        if self.mode == "defensive":
+            regime = "volatile"
+        elif self.mode in {"lean_up", "strong_up"} and regime == "range" and (state_weight >= 0.55 or self.mode == "strong_up"):
+            regime = "trend_up"
+        elif self.mode in {"lean_down", "strong_down"} and regime == "range" and (state_weight >= 0.55 or self.mode == "strong_down"):
+            regime = "trend_down"
+        style = self.market_style(regime, predicted_edge, fit_quality, volatility)
+        target_position = self.target_position(regime, predicted_edge, fit_quality, style, self.mode)
         adjusted_fair = self.adjusted_fair_value(
             regime,
             target_position,
             predicted_now,
             predicted_next,
-            flow_alpha,
+            hybrid_alpha,
+            style,
         ) - self.reservation_adjustment(regime, target_position, predicted_edge, volatility)
         took_buy, took_sell = self.take_orders(
             regime,
@@ -1201,8 +1286,8 @@ class TomatoesTrader(BaseProductTrader):
             predicted_edge,
             fit_quality,
             volatility,
-            stretch,
-            flow_alpha,
+            style,
+            self.mode,
         )
 
         buy_quote, sell_quote = self.passive_quotes(
@@ -1212,7 +1297,8 @@ class TomatoesTrader(BaseProductTrader):
             predicted_edge,
             fit_quality,
             volatility,
-            stretch,
+            style,
+            self.mode,
         )
         position = self.projected_position()
 
@@ -1223,32 +1309,10 @@ class TomatoesTrader(BaseProductTrader):
             and self.allow_passive("BUY", regime)
         ):
             if regime == "range" or position < target_position:
-                buy_ev = self.passive_expected_value(
-                    "BUY",
-                    int(buy_quote),
-                    adjusted_fair,
-                    regime,
-                    volatility,
-                    stretch,
-                    target_position,
-                )
-                if self.should_veto_passive("BUY", buy_ev, regime, volatility, stretch, target_position):
-                    buy_quote = None
-            if buy_quote is not None and (regime == "range" or position < target_position):
-                quantity = min(self.passive_size("BUY", regime, volatility), self.buy_capacity)
+                quantity = min(self.passive_size("BUY", regime, volatility, style), self.buy_capacity)
                 if regime != "range":
                     quantity = min(quantity, max(1, target_position - position))
                 self.add_buy(buy_quote, quantity)
-                self.resting_quotes.append(
-                    {
-                        "side": "BUY",
-                        "price": int(buy_quote),
-                        "timestamp": self.current_ts,
-                        "mid": float(self.mid),
-                        "qty": int(quantity),
-                        "filled_qty": 0,
-                    }
-                )
 
         position = self.projected_position()
         if (
@@ -1258,43 +1322,33 @@ class TomatoesTrader(BaseProductTrader):
             and self.allow_passive("SELL", regime)
         ):
             if regime == "range" or position > target_position:
-                sell_ev = self.passive_expected_value(
-                    "SELL",
-                    int(sell_quote),
-                    adjusted_fair,
-                    regime,
-                    volatility,
-                    stretch,
-                    target_position,
-                )
-                if self.should_veto_passive("SELL", sell_ev, regime, volatility, stretch, target_position):
-                    sell_quote = None
-            if sell_quote is not None and (regime == "range" or position > target_position):
-                quantity = min(self.passive_size("SELL", regime, volatility), self.sell_capacity)
+                quantity = min(self.passive_size("SELL", regime, volatility, style), self.sell_capacity)
                 if regime != "range":
                     quantity = min(quantity, max(1, position - target_position))
                 self.add_sell(sell_quote, quantity)
-                self.resting_quotes.append(
-                    {
-                        "side": "SELL",
-                        "price": int(sell_quote),
-                        "timestamp": self.current_ts,
-                        "mid": float(self.mid),
-                        "qty": int(quantity),
-                        "filled_qty": 0,
-                    }
-                )
 
-        self.next_memory = {
-            "book": self.current_book_snapshot(),
-            "resting_quotes": self.resting_quotes[-12:],
-            "pending_fills": self.pending_fills[-20:],
-            "passive_markout": self.passive_markout,
-            "adverse_buy_bias": self.buy_bias,
-            "adverse_sell_bias": self.sell_bias,
-            "last_fill_ts": self.last_fill_ts,
+        self.memory = {
+            "prev_mid": round(self.prev_mid, 4),
+            "ewma_mid": round(self.ewma_mid, 4),
+            "ewma_return": round(self.ewma_return, 4),
+            "ewma_abs_return": round(self.ewma_abs_return, 4),
+            "ewma_micro_gap": round(self.ewma_micro_gap, 4),
+            "ewma_imbalance": round(self.ewma_imbalance, 4),
+            "regime_score": round(self.regime_score, 4),
+            "mode": self.mode,
+            "fill_quality_ewma": round(self.fill_quality_ewma, 4),
+            "adverse_ewma": round(self.adverse_ewma, 4),
+            "pending_fills": [
+                {
+                    "timestamp": round(fill["timestamp"], 1),
+                    "price": round(fill["price"], 1),
+                    "side": round(fill["side"], 1),
+                    "qty": round(fill["qty"], 1),
+                }
+                for fill in self.pending_fills[-8:]
+            ],
+            "seen_trade_keys": self.seen_trade_keys[-24:],
         }
-
         return self.orders
 
 
@@ -1346,24 +1400,17 @@ class Trader:
                 continue
 
             trader_class = self.PRODUCT_TRADERS[product]
-            if product == "TOMATOES":
-                trader = trader_class(
-                    product,
-                    state,
-                    mid_history,
-                    self.POSITION_LIMITS[product],
-                    memory=memory.get(product, {}),
-                )
-                result[product] = trader.run()
-                next_memory[product] = trader.next_memory
-            else:
-                trader = trader_class(
-                    product,
-                    state,
-                    mid_history,
-                    self.POSITION_LIMITS[product],
-                )
-                result[product] = trader.run()
+            trader = trader_class(
+                product,
+                state,
+                mid_history,
+                self.POSITION_LIMITS[product],
+                memory.get(product, {}),
+            )
+            result[product] = trader.run()
+            exported_memory = trader.export_memory()
+            if exported_memory:
+                next_memory[product] = exported_memory
 
         conversions = 0
         trader_data = self.build_trader_data(mid_history, next_memory)

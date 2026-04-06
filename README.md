@@ -17,14 +17,14 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 2'395
-Bot: Trader v29.4
+Record Total PnL: 2'624.172
+Bot: Trader v39.2
 
 Failed_Bot_Count: 5
 
 Current Best Notes:
-V29.4 is currently the best official bot.
-It keeps the V16 EMERALDS engine unchanged and pushes the spread-heavy V29 family slightly further with a higher TOMATOES base quote edge and stronger volatility, inventory, and time-based spread control. The gain was again small but real, and it again came entirely from TOMATOES while EMERALDS stayed fixed at its 1'050 profile.
+V39.2 is currently the best official bot in the repo.
+It keeps the hybrid V39 family structure, but adds a guarded-alpha layer that reduces TOMATOES overextension in range or conflicting states and tapers the extra alpha when inventory is already large on the same side. The key gain was not EMERALDS, which stayed at the standard 1'050 profile, but a large improvement in TOMATOES path quality that lifted official total PnL above both V29.4 and the external highscore v2 benchmark.
 
 # Performance Maxes
 These are the highest scores reached so far. The best single-product peak does not always come from the best total bot.
@@ -41,9 +41,9 @@ These are the highest scores reached so far. The best single-product peak does n
 
 | Metric | Best Value | Bot |
 | --- | ---: | --- |
-| Total PnL | `2'394.875` | `V29.4` |
-| EMERALDS PnL | `1'050.0` | `V16` first reached it, later matched by several bots including `V29.4` |
-| TOMATOES PnL | `1'357.867` | `V31` |
+| Total PnL | `2'624.171875` | `V39.2` |
+| EMERALDS PnL | `1'050.0` | `V16` first reached it, later matched by several bots including `V29.4`, `V39`, and `V39.2` |
+| TOMATOES PnL | `1'574.171875` | `V39.2` |
 
 # Current Parameter Map:
 Based on [Traderv29_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_4.py), which is the current best official bot.
