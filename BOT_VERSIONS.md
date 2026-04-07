@@ -669,6 +669,24 @@ Improvement: Official-stability continuation of V39.1 aimed specifically at the 
 Notes: Lower local peak, but materially better official transfer. Rust PnL reached 15'486 with EMERALDS unchanged at 7'723 and TOMATOES at 7'763 over 684 trades. Officially it reached 2'624.171875 with EMERALDS at 1'050.0 and TOMATOES at 1'574.171875, beating both V29.4 and the external highscore v2 log. So V39.2 is exactly the kind of branch we wanted: it gives back some local peak in exchange for much better official path quality and avoids the `85k` TOMATOES drawdown that hurt V39.1.
 PnL: Official 2'624.171875 | Rust 15'486
 
+V39.3:
+Works: Yes
+Improvement: First fair-proxy continuation based on the public-research “wall mid” insight. Keeps the `V39.2` execution and risk shell intact, but adds a light size-filtered TOMATOES fair component built from the largest top-of-book levels on both sides. The wall-derived local fair is blended conservatively into both the hybrid alpha reference and the main fair value, with lower influence in trend states than in range states.
+Notes: This is a small but real improvement on the `V39.2` local line without changing the core behavior profile, but it did not transfer well officially. Rust PnL reached 15'521 with EMERALDS unchanged at 7'723 and TOMATOES improving to 7'798 over 697 trades. Officially, however, it fell to 2'522.734375 with EMERALDS still at 1'050.0 and TOMATOES at 1'472.734375. The issue was not EMERALDS at all; TOMATOES simply became too active and too expensive, with much larger buy/sell participation than `V39.2` but materially worse execution quality on both sides. So the wall-mid idea looked promising, but this first non-persistent version was too twitchy and hurt transfer.
+PnL: Official 2'522.734375 | Rust 15'521
+
+V39.4:
+Works: Yes
+Improvement: Persistence continuation of the `V39.3` wall-mid idea. Instead of using only the current book snapshot, TOMATOES now keeps a compact EWMA of the wall-derived local fair and its strength in `traderData`, then uses that persistent wall fair as the light fair-proxy overlay. The execution shell from `V39.2` remains unchanged.
+Notes: This improved the fair-proxy branch again, and this time it also transferred officially. Rust PnL reached 15'573 with EMERALDS unchanged at 7'723 and TOMATOES improving to 7'850 over 688 trades. Officially it reached 2'640.875 with EMERALDS still at 1'050.0 and TOMATOES at 1'590.875, which is a new top official score in our current line and beats `V39.2` by about 16.7. The trade profile is exactly what we wanted versus `V39.3`: it kept more TOMATOES participation than `V39.2`, but with much better buy/sell prices than the non-persistent wall-mid version. So the stronger version of the insight is not just “look at the current large quotes,” but “track a persistent large-quote fair across ticks.”
+PnL: Official 2'640.875 | Rust 15'573
+
+V39.5 Wall-Fair Follow-ups:
+Works: Yes
+Improvement: Narrow refinement pass on top of `V39.4` to test whether the persistent wall-fair idea could be made even cleaner. The follow-ups explored three directions: an agreement-gated wall fair that downweighted the signal when it conflicted with imbalance or momentum, a stripped version that removed wall influence from hybrid alpha and kept it only in the main fair value, and a slightly stronger fair-only wall weight.
+Notes: No follow-up beat `V39.4`, and the official logs made that conclusion even clearer. Locally, the agreement-gated version was too strict and fell to Rust 15'444, the fair-only version tied `V39.4` exactly at Rust 15'573, and the stronger fair-only weight weakened the branch to Rust 15'519. Officially, both tested follow-ups (`V39.5.1` and `V39.5.2`) came back exactly identical to `V39.4`: total 2'640.875 with EMERALDS at 1'050.0 and TOMATOES at 1'590.875, including the same TOMATOES trade counts, average buy/sell prices, and checkpoint path. So the current best read is that `V39.4` is already close to the right calibration: persistent wall fair helps, but the extra filtering and reweighting tried so far do not add incremental edge.
+PnL: Official Follow-ups = 2'640.875 | Best Follow-up Rust 15'573 | Baseline Rust 15'573
+
 55717 Overall CMA-ES:
 Works: Yes
 Improvement: First broad block-based CMA-ES search on the external `55717` bot with structure fixed. The search tuned both EMERALDS and TOMATOES continuous parameters in one controlled pass, including reference/mid weights and skew on EMERALDS plus the main quote, reservation, regression, and inventory controls on TOMATOES.
@@ -756,8 +774,8 @@ PnL: Official N/A | Rust 15'419
 V40.9.2:
 Works: Yes
 Improvement: Narrowed continuation of `V40.9`. Keeps the filtered `trend_fair` and residual state in memory, but removes the residual from hybrid-alpha damping, trend/range regime gating, range fair-value construction, and passive quote placement. The residual is now used only as a direct anti-chase control on the taker side, including a small explicit veto when the bot is already loaded and the current trend move is clearly overstretched.
-Notes: This is the right way to use the idea. Rust PnL recovered fully to 15'825 with EMERALDS at 7'723 and TOMATOES at 8'102 over 692 trades, tying the `V40.7` local peak. So the residual feature did not create a new local high, but it also did not hurt once it was reduced to a pure execution-layer brake. That makes `V40.9.2` a useful structural result: “subtract trends” can help as a very small control overlay, but not as a broad replacement for the stronger pricing core.
-PnL: Official N/A | Rust 15'825
+Notes: This is the right way to use the idea. Rust PnL recovered fully to 15'825 with EMERALDS at 7'723 and TOMATOES at 8'102 over 692 trades, tying the `V40.7` local peak. Officially it reached 2'588 with EMERALDS still at 1'050 and TOMATOES at 1'538, which puts it fractionally above the `V40.7` / `V40.3` line and very close to the stronger official hybrids. So the residual feature did not create a new local high, but it also did not hurt once it was reduced to a pure execution-layer brake. That makes `V40.9.2` a useful structural result: “subtract trends” can help as a very small control overlay, but not as a broad replacement for the stronger pricing core.
+PnL: Official 2'588 | Rust 15'825
 
 Clean Regime Bot:
 Works: Yes
