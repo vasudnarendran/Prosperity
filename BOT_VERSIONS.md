@@ -687,6 +687,18 @@ Improvement: Narrow refinement pass on top of `V39.4` to test whether the persis
 Notes: No follow-up beat `V39.4`, and the official logs made that conclusion even clearer. Locally, the agreement-gated version was too strict and fell to Rust 15'444, the fair-only version tied `V39.4` exactly at Rust 15'573, and the stronger fair-only weight weakened the branch to Rust 15'519. Officially, both tested follow-ups (`V39.5.1` and `V39.5.2`) came back exactly identical to `V39.4`: total 2'640.875 with EMERALDS at 1'050.0 and TOMATOES at 1'590.875, including the same TOMATOES trade counts, average buy/sell prices, and checkpoint path. So the current best read is that `V39.4` is already close to the right calibration: persistent wall fair helps, but the extra filtering and reweighting tried so far do not add incremental edge.
 PnL: Official Follow-ups = 2'640.875 | Best Follow-up Rust 15'573 | Baseline Rust 15'573
 
+V39.4 Wall-Fair Sweep:
+Works: Yes
+Improvement: Focused local sweep only on the persistent wall-fair block. The search tuned `WALL_ALPHA_WEIGHT`, `WALL_FAIR_WEIGHT`, `WALL_EWMA_ALPHA`, and `WALL_PERSISTENCE_FLOOR` while keeping the rest of the `V39.4` structure fixed.
+Notes: This sweep found a real improvement region. Baseline `V39.4` at Rust 15'573 improved to a best local result of 15'764, entirely through TOMATOES rising from 7'850 to 8'041 while EMERALDS stayed fixed at 7'723. The clearest pattern was: wall fair should matter more in the main fair than in hybrid alpha, and the persistent wall signal should be allowed to activate earlier. The strongest region used `WALL_FAIR_WEIGHT = 0.20`, `WALL_EWMA_ALPHA = 0.22`, and `WALL_PERSISTENCE_FLOOR = 0.25`, while `WALL_ALPHA_WEIGHT` barely mattered in the top cluster. Outputs live in `Analysis/output/v39_4_wall_sweep_report.txt`, `Analysis/output/v39_4_wall_sweep_results.csv`, and `Analysis/output/v39_4_wall_sweep_best.json`.
+PnL: Best Rust 15'764 | Baseline Rust 15'573
+
+V39.6:
+Works: Yes
+Improvement: Promotion of the cleanest winning configuration from the focused `V39.4` wall-fair sweep. Keeps the persistent wall-fair architecture intact, but applies the sweep-winning calibration: no wall influence in hybrid alpha, a stronger wall contribution in the main fair, and a lower persistence floor so the signal engages earlier.
+Notes: The local sweep win did not transfer. Rust PnL reached 15'764 with EMERALDS unchanged at 7'723 and TOMATOES improving to 8'041 over 693 trades, but the official replay fell to 2'544.164 with EMERALDS still at 1'050.0 and TOMATOES at 1'494.164. Relative to `V39.4` at 2'640.875 / 1'590.875, the stronger wall-fair calibration over-activated TOMATOES and traded more at worse prices: buy quantity rose from 151 to 159 with average buy worsening from 4'985.523 to 4'985.585, and sell quantity rose from 125 to 136 with average sell dropping from 4'995.952 to 4'994.713. The underperformance showed up throughout the day rather than from one collapse, with TOMATOES trailing at 50k, 85k, 100k, and especially by 150k. So the sweep confirmed the signal is useful, but `V39.4` remains the better official calibration.
+PnL: Official 2'544.164 | Rust 15'764
+
 55717 Overall CMA-ES:
 Works: Yes
 Improvement: First broad block-based CMA-ES search on the external `55717` bot with structure fixed. The search tuned both EMERALDS and TOMATOES continuous parameters in one controlled pass, including reference/mid weights and skew on EMERALDS plus the main quote, reservation, regression, and inventory controls on TOMATOES.

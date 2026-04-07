@@ -17,14 +17,14 @@ The runner uses market data from `Data/`, loads the selected bot from `Bots/`, a
 # Bots
 Continueing to improve the Bots 
 
-Record Total PnL: 2'624.172
-Bot: Trader v39.2
+Record Total PnL: 2'640.875
+Bot: Trader v39.4
 
 Failed_Bot_Count: 50
 
 Current Best Notes:
-V39.2 is currently the best official bot in the repo.
-It keeps the hybrid V39 family structure, but adds a guarded-alpha layer that reduces TOMATOES overextension in range or conflicting states and tapers the extra alpha when inventory is already large on the same side. The key gain was not EMERALDS, which stayed at the standard 1'050 profile, but a large improvement in TOMATOES path quality that lifted official total PnL above both V29.4 and the external highscore v2 benchmark.
+V39.4 is currently the best official bot in the repo.
+It keeps the stronger `V39.2` hybrid execution core, but improves TOMATOES fair estimation with a persistent EWMA wall-fair signal built from large nearby quotes. The key gain was not EMERALDS, which stayed at the standard `1'050` profile, but a cleaner TOMATOES fair proxy that lifted official total PnL above `V39.2`. Follow-up variants confirmed that the wall signal transfers best as a persistent fair-value anchor rather than as an extra alpha input.
 
 # Performance Maxes
 These are the highest scores reached so far. The best single-product peak does not always come from the best total bot.
@@ -33,20 +33,20 @@ These are the highest scores reached so far. The best single-product peak does n
 
 | Metric | Best Value | Bot |
 | --- | ---: | --- |
-| Total PnL | `15'931` | `V39.1` |
+| Total PnL | `15'825` | `V40.7` |
 | EMERALDS PnL | `7'723` | `V29.8`, later matched by `V29.9`, `V39`, and `V39.1` |
-| TOMATOES PnL | `8'208` | `V39.1` |
+| TOMATOES PnL | `8'102` | `V40.7`, later matched by `V40.9.2` |
 
 ## Official Logs
 
 | Metric | Best Value | Bot |
 | --- | ---: | --- |
-| Total PnL | `2'624.171875` | `V39.2` |
+| Total PnL | `2'640.875` | `V39.4` |
 | EMERALDS PnL | `1'050.0` | `V16` first reached it, later matched by several bots including `V29.4`, `V39`, and `V39.2` |
-| TOMATOES PnL | `1'574.171875` | `V39.2` |
+| TOMATOES PnL | `1'590.875` | `V39.4` |
 
 # Current Parameter Map:
-Based on [Traderv29_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_4.py), which is the current best official bot.
+Based on [Traderv39_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv39_4.py), which is the current best official bot.
 
 | Product | Fair Value | Inventory Skew | Take Logic | Quote Logic | Size Logic | Target / Bias |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -54,10 +54,10 @@ Based on [Traderv29_4.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_4.py
 | `TOMATOES` | `0.25 * mid + 0.30 * micro + 0.25 * history + 0.20 * predicted_next + 0.35 * imbalance`, plus trend fair-value carry bonus | `0.035` against current position, then adjusted again through a reservation-price control layer | Base take edge `1.25`, shifted by forecasted edge, fit quality, inventory, spread, volatility, trend-carry bonuses, and stronger control-layer hold adjustments | Base quote edge `2.75`, then widened or tightened by PDE/HJB-style spread control using stronger volatility, inventory, and time coefficients | Passive size `8`, trend passive-size bonus `2`, max take size `10` | Predictive carry regime model with inventory-aware reservation price, adaptive quote-width control, and stronger trend-side exit patience |
 
 Important candidate note:
-- `V29.4` is now the official best and improved over `V29` by `+8`.
-- `V27.3` was stable across two identical official runs at `2'381.875`, `V29` pushed that to `2'386.875`, and `V29.4` then reached `2'394.875`.
-- The official gain again came entirely from TOMATOES, while EMERALDS stayed unchanged at `1'050`.
-- `V20.1` and `V18` remain the core structural breakthroughs because the `V27.x` family is mainly improving the TOMATOES control layer on top of that alpha family.
+- `V39.4` is now the official best and improved over `V39.2` by about `+16.7`.
+- The gain again came entirely from TOMATOES, while EMERALDS stayed unchanged at `1'050`.
+- The key transfer insight so far is that a persistent wall-fair estimate helps, but stronger local wall-fair calibrations like `V39.6` can still over-activate TOMATOES on the official replay.
+- The current split in evidence is: `V39.4` is the best official-transfer bot, while `V40.7` is still the best local Rust bot.
 
 Emeralds key levers:
 - `REFERENCE_WEIGHT = 0.80`
@@ -126,3 +126,7 @@ See [BOT_VERSIONS.md](/Users/xavierwinkelmann/Prosperity/BOT_VERSIONS.md)
 
 Monte Carlo Comparison:
 See [MONTE_CARLO_COMPARISON.md](/Users/xavierwinkelmann/Prosperity/MONTE_CARLO_COMPARISON.md)
+
+Latest Monte Carlo note:
+- The heavier 1000-session run for [Traderv39_6.py](/Users/xavierwinkelmann/Prosperity/Bots/Traderv39_6.py) came in strong under the generator with mean total PnL `15,524.24` and mean TOMATOES PnL `7,990.81`, beating the earlier quick Monte Carlo means for `V39.2` and `V40.7`.
+- But `V39.6` still underperformed on the official replay, so Monte Carlo strength alone is not enough to promote a bot over `V39.4`.
