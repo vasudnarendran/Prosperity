@@ -1,0 +1,8 @@
+seed=20260401
+fv_mode=Simulate
+trade_mode=Simulate
+tomato_support=Quarter
+actual_dir=/Users/xavierwinkelmann/Prosperity/MonteCarloBacktester/data/round0
+strategy=/Users/xavierwinkelmann/Prosperity/Bots/Traderv29_9.py
+sessions=100
+write_session_limit=10

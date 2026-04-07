@@ -20,7 +20,7 @@ Continueing to improve the Bots
 Record Total PnL: 2'624.172
 Bot: Trader v39.2
 
-Failed_Bot_Count: 5
+Failed_Bot_Count: 50
 
 Current Best Notes:
 V39.2 is currently the best official bot in the repo.
@@ -123,3 +123,6 @@ Tomatoes key levers:
 
 Version Log:
 See [BOT_VERSIONS.md](/Users/xavierwinkelmann/Prosperity/BOT_VERSIONS.md)
+
+Monte Carlo Comparison:
+See [MONTE_CARLO_COMPARISON.md](/Users/xavierwinkelmann/Prosperity/MONTE_CARLO_COMPARISON.md)
