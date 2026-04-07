@@ -747,6 +747,18 @@ Improvement: Phase 1 CMA-ES tuning pass on top of `V40.6` with the structure kep
 Notes: This was a real upgrade in the local Rust backtester, but it did not transfer to the official replay. The best Phase 1 CMA-ES candidate improved the multi-day local objective from 34'299.143 to 34'849.989 across days `-2` and `-1`, with total PnL rising from 31'267 to 31'749 and TOMATOES from 16'376 to 16'858 while slightly lowering average TOMATOES inventory. Promoted as `V40.7`, it also improved the direct day `-1` local result to 15'825 with EMERALDS unchanged at 7'723 and TOMATOES up to 8'102 over 692 trades. Officially, however, `V40.7` finished at 2'587.594 with EMERALDS at 1'050 and TOMATOES at 1'537.594, which is effectively identical to `V40.3` and still below `V39.2`. That makes this a good example of local overfitting risk: the focused CMA-ES pass found a better local calibration, but not a better official calibration.
 PnL: Official 2'587.594 | Rust 15'825
 
+V40.9:
+Works: Yes
+Improvement: First implementation of the “subtract trends” idea using a filtered TOMATOES `trend_fair` plus a detrended residual. The residual was then used across several layers at once: regime gating, hybrid-alpha damping, range fair-value reversion, trend-side take braking, and a small passive-quote brake in overstretched trend states.
+Notes: Clean idea, but too broad in this first form. Rust PnL fell to 15'419 with EMERALDS unchanged at 7'723 and TOMATOES at 7'696 over 696 trades. The main lesson is that the detrended residual does seem directionally meaningful, but spreading it across fair value, regime classification, and passive placement made the bot too brake-heavy and gave up too much TOMATOES participation. So the residual looks better as a narrow execution control than as a general pricing layer.
+PnL: Official N/A | Rust 15'419
+
+V40.9.2:
+Works: Yes
+Improvement: Narrowed continuation of `V40.9`. Keeps the filtered `trend_fair` and residual state in memory, but removes the residual from hybrid-alpha damping, trend/range regime gating, range fair-value construction, and passive quote placement. The residual is now used only as a direct anti-chase control on the taker side, including a small explicit veto when the bot is already loaded and the current trend move is clearly overstretched.
+Notes: This is the right way to use the idea. Rust PnL recovered fully to 15'825 with EMERALDS at 7'723 and TOMATOES at 8'102 over 692 trades, tying the `V40.7` local peak. So the residual feature did not create a new local high, but it also did not hurt once it was reduced to a pure execution-layer brake. That makes `V40.9.2` a useful structural result: “subtract trends” can help as a very small control overlay, but not as a broad replacement for the stronger pricing core.
+PnL: Official N/A | Rust 15'825
+
 Clean Regime Bot:
 Works: Yes
 Improvement: Standalone clean-regime reference bot focused on explicit persistent state, simpler regime switching, and a more stripped-down TOMATOES control architecture. It is useful mainly as a structural comparison point because it shows what a cleaner regime-first design can do without the heavier hybrid calibration stack from the top family.
