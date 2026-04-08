@@ -1,0 +1,28 @@
+V27 Position Sweep Report
+=========================
+Bot: /Users/vasudravinarendran/Documents/Prosperity/MyProsperity/Bots/Traderv27.py
+Cases: 21
+Days: [-1, -2]
+
+Baseline avg: 13157.8
+
+Top 10 results:
+  sb95_lb30: avg=13200.8 (+43.0) | day-1=13225.0 day-2=13176.5
+    overrides: {"OFFLINE_LONG_BLEND": 0.3, "OFFLINE_SHORT_BLEND": 0.95}
+  sb65_lb60: avg=13161.8 (+4.0) | day-1=13144.0 day-2=13179.5
+    overrides: {"OFFLINE_LONG_BLEND": 0.6, "OFFLINE_SHORT_BLEND": 0.65}
+  combined_aggressive: avg=13158.5 (+0.8) | day-1=13144.0 day-2=13173.0
+    overrides: {"MAX_TAKE_SIZE": 12, "OFFLINE_LONG_BLEND": 0.45, "OFFLINE_SHORT_BLEND": 0.95, "SOFT_LIMIT_RATIO": 0.85, "TREND_PASSIVE_SIZE_BONUS": 4.0}
+  baseline: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+  sl65_pb30: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.65, "TREND_PASSIVE_SIZE_BONUS": 3.0}
+  sl65_pb40: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.65, "TREND_PASSIVE_SIZE_BONUS": 4.0}
+  sl75_pb20: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.75, "TREND_PASSIVE_SIZE_BONUS": 2.0}
+  sl75_pb30: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.75, "TREND_PASSIVE_SIZE_BONUS": 3.0}
+  sl75_pb40: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.75, "TREND_PASSIVE_SIZE_BONUS": 4.0}
+  sl85_pb20: avg=13157.8 (+0.0) | day-1=13139.0 day-2=13176.5
+    overrides: {"SOFT_LIMIT_RATIO": 0.85, "TREND_PASSIVE_SIZE_BONUS": 2.0}

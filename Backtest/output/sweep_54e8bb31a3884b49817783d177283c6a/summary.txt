@@ -1,0 +1,20 @@
+Backtest summary
+================
+Bot file: /private/var/folders/ql/17x4tgn54yz_g2zmxl42mflh0000gn/T/sweep_54e8bb31a3884b49817783d177283c6a.py
+Datamodel: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/datamodel.py
+Day filter: -1
+Data sources: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Data/prices_round_0_day_-1.csv and /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Data/trades_round_0_day_-1.csv
+Steps: 10000
+Total fills: 94
+Final total PnL: 13900.00
+Best total PnL: 13994.50
+Worst total PnL: 0.00
+
+Per product final PnL:
+- EMERALDS: 7203.00 | final position -4
+- TOMATOES: 6697.00 | final position -9
+
+Matching model used here:
+- Marketable orders fill immediately against visible book levels.
+- Resting orders stay active for one interval and may fill on the next snapshot if the next book or trade tape reaches their price.
+- This is a practical local approximation, not the official hidden simulator.

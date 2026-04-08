@@ -1,0 +1,55 @@
+V37 Focused Feature Sweep Report
+================================
+
+Bot source: /Users/vasudravinarendran/Documents/Prosperity/MyProsperity/Bots/Traderv37.py
+Backtester: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Backtest_failed_Python/run_backtest.py
+Random samples: 4
+Coordinate probes: disabled
+Total candidates: 4
+Total evaluations: 10
+
+Why This Sweep Exists
+---------------------
+Traderv37 is the first breakout branch that changed the official simulator path,
+but it still underperforms locally. This sweep searches narrowly around the new
+book-delta controls and ranks candidates by a regression-aware local score rather
+than trying to replace v37 with a broad local optimum.
+
+Current Traderv37 Local Baseline
+--------------------------------
+Day -1 total: 14868.00
+Day -2 total: 14620.50
+Avg total:    14744.25
+Day -1 TOMATOES: 7345.00
+Day -2 TOMATOES: 7681.50
+
+Tracked Parameters
+------------------
+BOOK_ACTIVITY_FLOOR: default=0.6000, bounds=(0.3000, 1.2000), window=+/-0.1800
+BOOK_STEP_WEIGHT: default=0.8500, bounds=(0.4000, 1.5000), window=+/-0.2500
+BOOK_DEPLETION_WEIGHT: default=0.6500, bounds=(0.2500, 1.2000), window=+/-0.2200
+MICRO_DRIFT_WEIGHT: default=0.5500, bounds=(0.1500, 1.1000), window=+/-0.1800
+PRESSURE_BIAS_SCALE: default=0.2200, bounds=(0.0500, 0.5000), window=+/-0.0800
+BREAKOUT_FOLLOW_SCALE: default=0.1800, bounds=(0.0500, 0.4000), window=+/-0.0700
+BREAKOUT_QUOTE_TIGHTEN: default=0.1800, bounds=(0.0200, 0.4500), window=+/-0.0800
+BREAKOUT_HOLD_BONUS: default=0.1200, bounds=(0.0200, 0.3000), window=+/-0.0600
+
+Top Candidates By Local Score
+-----------------------------
+Rank  Label                               Score        Avg   D1 Delta   D2 Delta
+   1  random_004                       14783.10   14797.25       0.00     106.00
+   2  random_003                       14619.75   14715.75     -57.00       0.00
+   3  random_001                       14452.60   14705.25    -184.00     106.00
+
+Top Candidates By Raw Average
+-----------------------------
+Rank  Label                                 Avg      Score   D1 Total   D2 Total
+   1  random_004                       14797.25   14783.10   14868.00   14726.50
+   2  random_003                       14715.75   14619.75   14811.00   14620.50
+   3  random_001                       14705.25   14452.60   14684.00   14726.50
+
+Recommendation
+--------------
+Use this as a local filter only.
+Start official testing with the top 3-5 candidates by local score, not the entire list.
+If a candidate matches or beats v37 officially, then run a second, tighter sweep around that point.

@@ -1,0 +1,204 @@
+{
+  "GAMMA_RANGE": 0.6928332680835034,
+  "RESERVATION_SCALE": 0.02,
+  "RANGE_RESERVATION_BIAS": 0.2648612195111966,
+  "SPREAD_VOL_COEF": 0.1,
+  "SPREAD_INV_COEF": 1.1081636907189312,
+  "SPREAD_TIME_COEF": 1.7791176840896006,
+  "BASE_TAKE_EDGE": 0.8,
+  "ALPHA_EDGE_SCALE": 1.4153631160892486,
+  "ALPHA_IMBALANCE_SCALE": 0.7,
+  "INVENTORY_SKEW": 0.005,
+  "SOFT_LIMIT_RATIO": 0.5682872622121695,
+  "meta": {
+    "day_neg1_pnl": 14093.0,
+    "day_neg2_pnl": 14423.5,
+    "avg_pnl": 14258.25,
+    "baseline_day_neg1": 13726.0,
+    "baseline_day_neg2": 13661.0,
+    "baseline_avg": 13693.5,
+    "delta_day_neg1": 367.0,
+    "delta_day_neg2": 762.5,
+    "delta_avg": 564.75,
+    "any_regression_vs_baseline": false,
+    "total_evaluations": 502,
+    "objective": "avg(day-1, day-2)"
+  },
+  "history": [
+    {
+      "gen": 1,
+      "best_avg_pnl_this_gen": 13825.75,
+      "global_best_avg_pnl": 13825.75,
+      "sigma": 0.18280865594966786,
+      "mean_avg_pnl": 13697.4
+    },
+    {
+      "gen": 2,
+      "best_avg_pnl_this_gen": 13872.5,
+      "global_best_avg_pnl": 13872.5,
+      "sigma": 0.17219558254475884,
+      "mean_avg_pnl": 13753.8
+    },
+    {
+      "gen": 3,
+      "best_avg_pnl_this_gen": 14012.0,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.16275386479398754,
+      "mean_avg_pnl": 13676.95
+    },
+    {
+      "gen": 4,
+      "best_avg_pnl_this_gen": 13908.0,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.15834889333226979,
+      "mean_avg_pnl": 13742.275
+    },
+    {
+      "gen": 5,
+      "best_avg_pnl_this_gen": 13834.75,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.1571603076682743,
+      "mean_avg_pnl": 13724.125
+    },
+    {
+      "gen": 6,
+      "best_avg_pnl_this_gen": 13952.5,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.1663902569053063,
+      "mean_avg_pnl": 13698.425
+    },
+    {
+      "gen": 7,
+      "best_avg_pnl_this_gen": 13933.0,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.18282616535187937,
+      "mean_avg_pnl": 13748.475
+    },
+    {
+      "gen": 8,
+      "best_avg_pnl_this_gen": 13884.0,
+      "global_best_avg_pnl": 14012.0,
+      "sigma": 0.19412670938042428,
+      "mean_avg_pnl": 13737.825
+    },
+    {
+      "gen": 9,
+      "best_avg_pnl_this_gen": 14021.25,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.2094067291100575,
+      "mean_avg_pnl": 13712.975
+    },
+    {
+      "gen": 10,
+      "best_avg_pnl_this_gen": 13884.25,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.2133018519964192,
+      "mean_avg_pnl": 13777.525
+    },
+    {
+      "gen": 11,
+      "best_avg_pnl_this_gen": 13962.0,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.22347377065978222,
+      "mean_avg_pnl": 13819.85
+    },
+    {
+      "gen": 12,
+      "best_avg_pnl_this_gen": 13992.75,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.24295112294523302,
+      "mean_avg_pnl": 13801.725
+    },
+    {
+      "gen": 13,
+      "best_avg_pnl_this_gen": 13974.75,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.24968465084596783,
+      "mean_avg_pnl": 13844.6
+    },
+    {
+      "gen": 14,
+      "best_avg_pnl_this_gen": 13903.5,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.2564956611911975,
+      "mean_avg_pnl": 13769.875
+    },
+    {
+      "gen": 15,
+      "best_avg_pnl_this_gen": 13804.25,
+      "global_best_avg_pnl": 14021.25,
+      "sigma": 0.2578956792443093,
+      "mean_avg_pnl": 13701.125
+    },
+    {
+      "gen": 16,
+      "best_avg_pnl_this_gen": 14120.0,
+      "global_best_avg_pnl": 14120.0,
+      "sigma": 0.2550261772325478,
+      "mean_avg_pnl": 13799.45
+    },
+    {
+      "gen": 17,
+      "best_avg_pnl_this_gen": 14001.5,
+      "global_best_avg_pnl": 14120.0,
+      "sigma": 0.26624352632608894,
+      "mean_avg_pnl": 13884.375
+    },
+    {
+      "gen": 18,
+      "best_avg_pnl_this_gen": 13998.0,
+      "global_best_avg_pnl": 14120.0,
+      "sigma": 0.2795258346799259,
+      "mean_avg_pnl": 13816.125
+    },
+    {
+      "gen": 19,
+      "best_avg_pnl_this_gen": 14258.25,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.26722892249000485,
+      "mean_avg_pnl": 13861.725
+    },
+    {
+      "gen": 20,
+      "best_avg_pnl_this_gen": 14051.5,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.25283153960978355,
+      "mean_avg_pnl": 13918.95
+    },
+    {
+      "gen": 21,
+      "best_avg_pnl_this_gen": 13915.5,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.2414123643036842,
+      "mean_avg_pnl": 13783.025
+    },
+    {
+      "gen": 22,
+      "best_avg_pnl_this_gen": 14070.25,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.23765224871716015,
+      "mean_avg_pnl": 13873.95
+    },
+    {
+      "gen": 23,
+      "best_avg_pnl_this_gen": 14182.25,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.23862533069311195,
+      "mean_avg_pnl": 13876.925
+    },
+    {
+      "gen": 24,
+      "best_avg_pnl_this_gen": 13982.75,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.24518975117190223,
+      "mean_avg_pnl": 13869.45
+    },
+    {
+      "gen": 25,
+      "best_avg_pnl_this_gen": 14091.0,
+      "global_best_avg_pnl": 14258.25,
+      "sigma": 0.24248656072266403,
+      "mean_avg_pnl": 13867.075
+    }
+  ]
+}

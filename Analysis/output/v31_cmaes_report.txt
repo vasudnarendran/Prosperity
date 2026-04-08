@@ -1,0 +1,72 @@
+V31 CMA-ES Optimization Report
+================================
+
+Algorithm: (5_w, 10)-CMA-ES  |  n=11  |  sigma0=0.20  |  25 generations
+Total evaluations: 502
+Objective: avg(day-1, day-2)
+
+Baselines
+---------
+Day -1 baseline:  13726.00
+Day -2 baseline:  13661.00
+Avg baseline:     13693.50
+
+Best Result
+-----------
+Day -1 PnL:   14093.00   (+367.00 vs baseline)
+Day -2 PnL:   14423.50   (+762.50 vs baseline)
+Avg PnL:      14258.25   (+564.75 vs baseline avg)
+Regression:   NONE — both days improved
+
+Parameter Comparison
+--------------------
+Parameter                     Default    Optimized     Change
+--------------------------------------------------------------
+GAMMA_RANGE                    0.3400       0.6928    +103.8%
+RESERVATION_SCALE              0.1200       0.0200     -83.3%
+RANGE_RESERVATION_BIAS         0.2000       0.2649     +32.4%
+SPREAD_VOL_COEF                0.9000       0.1000     -88.9%
+SPREAD_INV_COEF                0.4200       1.1082    +163.8%
+SPREAD_TIME_COEF               0.9000       1.7791     +97.7%
+BASE_TAKE_EDGE                 1.2500       0.8000     -36.0%
+ALPHA_EDGE_SCALE               1.0600       1.4154     +33.5%
+ALPHA_IMBALANCE_SCALE          1.1600       0.7000     -39.7%
+INVENTORY_SKEW                 0.0350       0.0050     -85.7%
+SOFT_LIMIT_RATIO               0.6500       0.5683     -12.6%
+
+Generation History (avg PnL)
+----------------------------
+ Gen   Gen Best Avg   Global Best Avg     Sigma
+   1       13825.75          13825.75   0.18281
+   2       13872.50          13872.50   0.17220
+   3       14012.00          14012.00   0.16275
+   4       13908.00          14012.00   0.15835
+   5       13834.75          14012.00   0.15716
+   6       13952.50          14012.00   0.16639
+   7       13933.00          14012.00   0.18283
+   8       13884.00          14012.00   0.19413
+   9       14021.25          14021.25   0.20941
+  10       13884.25          14021.25   0.21330
+  11       13962.00          14021.25   0.22347
+  12       13992.75          14021.25   0.24295
+  13       13974.75          14021.25   0.24968
+  14       13903.50          14021.25   0.25650
+  15       13804.25          14021.25   0.25790
+  16       14120.00          14120.00   0.25503
+  17       14001.50          14120.00   0.26624
+  18       13998.00          14120.00   0.27953
+  19       14258.25          14258.25   0.26723
+  20       14051.50          14258.25   0.25283
+  21       13915.50          14258.25   0.24141
+  22       14070.25          14258.25   0.23765
+  23       14182.25          14258.25   0.23863
+  24       13982.75          14258.25   0.24519
+  25       14091.00          14258.25   0.24249
+
+Recommendation
+--------------
+Both days improved vs baseline. Apply to Traderv32.py:
+Update DEFAULT_TOMATOES_PARAMS with values in v31_cmaes_best.json.
+
+Expected official improvement: ~97 pts (using 5.8x local/official ratio)
+Expected official score: ~2356

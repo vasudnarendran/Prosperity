@@ -1,0 +1,343 @@
+{
+  "meta": {
+    "bot_source_path": "/Users/vasudravinarendran/Documents/Prosperity/MyProsperity/Bots/Traderv37.py",
+    "backtester": "/Users/vasudravinarendran/Documents/Prosperity/Prosperity/Backtest_failed_Python/run_backtest.py",
+    "samples_random": 4,
+    "seed": 37,
+    "skip_coordinate": true,
+    "total_candidates": 4,
+    "total_evaluations": 10,
+    "note": "Local filter only. Traderv37 improved officially while underperforming locally, so top candidates should be validated on the official simulator before adoption."
+  },
+  "defaults": {
+    "BOOK_ACTIVITY_FLOOR": 0.6,
+    "BOOK_STEP_WEIGHT": 0.85,
+    "BOOK_DEPLETION_WEIGHT": 0.65,
+    "MICRO_DRIFT_WEIGHT": 0.55,
+    "PRESSURE_BIAS_SCALE": 0.22,
+    "BREAKOUT_FOLLOW_SCALE": 0.18,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.18,
+    "BREAKOUT_HOLD_BONUS": 0.12
+  },
+  "search_space": {
+    "BOOK_ACTIVITY_FLOOR": {
+      "bounds": [
+        0.3,
+        1.2
+      ],
+      "window": 0.18
+    },
+    "BOOK_STEP_WEIGHT": {
+      "bounds": [
+        0.4,
+        1.5
+      ],
+      "window": 0.25
+    },
+    "BOOK_DEPLETION_WEIGHT": {
+      "bounds": [
+        0.25,
+        1.2
+      ],
+      "window": 0.22
+    },
+    "MICRO_DRIFT_WEIGHT": {
+      "bounds": [
+        0.15,
+        1.1
+      ],
+      "window": 0.18
+    },
+    "PRESSURE_BIAS_SCALE": {
+      "bounds": [
+        0.05,
+        0.5
+      ],
+      "window": 0.08
+    },
+    "BREAKOUT_FOLLOW_SCALE": {
+      "bounds": [
+        0.05,
+        0.4
+      ],
+      "window": 0.07
+    },
+    "BREAKOUT_QUOTE_TIGHTEN": {
+      "bounds": [
+        0.02,
+        0.45
+      ],
+      "window": 0.08
+    },
+    "BREAKOUT_HOLD_BONUS": {
+      "bounds": [
+        0.02,
+        0.3
+      ],
+      "window": 0.06
+    }
+  },
+  "baseline": {
+    "day_neg1_total": 14868.0,
+    "day_neg2_total": 14620.5,
+    "avg_total": 14744.25,
+    "day_neg1_tomatoes": 7345.0,
+    "day_neg2_tomatoes": 7681.5
+  },
+  "top_by_score": [
+    {
+      "label": "random_004",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.65147839,
+        "BOOK_STEP_WEIGHT": 0.86519435,
+        "BOOK_DEPLETION_WEIGHT": 0.67874424,
+        "MICRO_DRIFT_WEIGHT": 0.56270591,
+        "PRESSURE_BIAS_SCALE": 0.1608788,
+        "BREAKOUT_FOLLOW_SCALE": 0.1818422,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.15224482,
+        "BREAKOUT_HOLD_BONUS": 0.11479172
+      },
+      "score": 14783.1,
+      "day_neg1_total": 14868.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14797.25,
+      "delta_day_neg1": 0.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": 53.0,
+      "day_neg1_tomatoes": 7345.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_003",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.66936544,
+        "BOOK_STEP_WEIGHT": 0.94843507,
+        "BOOK_DEPLETION_WEIGHT": 0.71487453,
+        "MICRO_DRIFT_WEIGHT": 0.44680223,
+        "PRESSURE_BIAS_SCALE": 0.17101538,
+        "BREAKOUT_FOLLOW_SCALE": 0.16318028,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.16798655,
+        "BREAKOUT_HOLD_BONUS": 0.13124367
+      },
+      "score": 14619.75,
+      "day_neg1_total": 14811.0,
+      "day_neg2_total": 14620.5,
+      "avg_total": 14715.75,
+      "delta_day_neg1": -57.0,
+      "delta_day_neg2": 0.0,
+      "delta_avg_total": -28.5,
+      "day_neg1_tomatoes": 7288.0,
+      "day_neg2_tomatoes": 7681.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_001",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.63022344,
+        "BOOK_STEP_WEIGHT": 0.7070062,
+        "BOOK_DEPLETION_WEIGHT": 0.67454984,
+        "MICRO_DRIFT_WEIGHT": 0.60357314,
+        "PRESSURE_BIAS_SCALE": 0.24335494,
+        "BREAKOUT_FOLLOW_SCALE": 0.18104346,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.18987372,
+        "BREAKOUT_HOLD_BONUS": 0.11156021
+      },
+      "score": 14452.6,
+      "day_neg1_total": 14684.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14705.25,
+      "delta_day_neg1": -184.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": -39.0,
+      "day_neg1_tomatoes": 7161.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    }
+  ],
+  "top_by_avg_total": [
+    {
+      "label": "random_004",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.65147839,
+        "BOOK_STEP_WEIGHT": 0.86519435,
+        "BOOK_DEPLETION_WEIGHT": 0.67874424,
+        "MICRO_DRIFT_WEIGHT": 0.56270591,
+        "PRESSURE_BIAS_SCALE": 0.1608788,
+        "BREAKOUT_FOLLOW_SCALE": 0.1818422,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.15224482,
+        "BREAKOUT_HOLD_BONUS": 0.11479172
+      },
+      "score": 14783.1,
+      "day_neg1_total": 14868.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14797.25,
+      "delta_day_neg1": 0.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": 53.0,
+      "day_neg1_tomatoes": 7345.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_003",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.66936544,
+        "BOOK_STEP_WEIGHT": 0.94843507,
+        "BOOK_DEPLETION_WEIGHT": 0.71487453,
+        "MICRO_DRIFT_WEIGHT": 0.44680223,
+        "PRESSURE_BIAS_SCALE": 0.17101538,
+        "BREAKOUT_FOLLOW_SCALE": 0.16318028,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.16798655,
+        "BREAKOUT_HOLD_BONUS": 0.13124367
+      },
+      "score": 14619.75,
+      "day_neg1_total": 14811.0,
+      "day_neg2_total": 14620.5,
+      "avg_total": 14715.75,
+      "delta_day_neg1": -57.0,
+      "delta_day_neg2": 0.0,
+      "delta_avg_total": -28.5,
+      "day_neg1_tomatoes": 7288.0,
+      "day_neg2_tomatoes": 7681.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_001",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.63022344,
+        "BOOK_STEP_WEIGHT": 0.7070062,
+        "BOOK_DEPLETION_WEIGHT": 0.67454984,
+        "MICRO_DRIFT_WEIGHT": 0.60357314,
+        "PRESSURE_BIAS_SCALE": 0.24335494,
+        "BREAKOUT_FOLLOW_SCALE": 0.18104346,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.18987372,
+        "BREAKOUT_HOLD_BONUS": 0.11156021
+      },
+      "score": 14452.6,
+      "day_neg1_total": 14684.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14705.25,
+      "delta_day_neg1": -184.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": -39.0,
+      "day_neg1_tomatoes": 7161.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    }
+  ],
+  "results": [
+    {
+      "label": "random_004",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.65147839,
+        "BOOK_STEP_WEIGHT": 0.86519435,
+        "BOOK_DEPLETION_WEIGHT": 0.67874424,
+        "MICRO_DRIFT_WEIGHT": 0.56270591,
+        "PRESSURE_BIAS_SCALE": 0.1608788,
+        "BREAKOUT_FOLLOW_SCALE": 0.1818422,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.15224482,
+        "BREAKOUT_HOLD_BONUS": 0.11479172
+      },
+      "score": 14783.1,
+      "day_neg1_total": 14868.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14797.25,
+      "delta_day_neg1": 0.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": 53.0,
+      "day_neg1_tomatoes": 7345.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_003",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.66936544,
+        "BOOK_STEP_WEIGHT": 0.94843507,
+        "BOOK_DEPLETION_WEIGHT": 0.71487453,
+        "MICRO_DRIFT_WEIGHT": 0.44680223,
+        "PRESSURE_BIAS_SCALE": 0.17101538,
+        "BREAKOUT_FOLLOW_SCALE": 0.16318028,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.16798655,
+        "BREAKOUT_HOLD_BONUS": 0.13124367
+      },
+      "score": 14619.75,
+      "day_neg1_total": 14811.0,
+      "day_neg2_total": 14620.5,
+      "avg_total": 14715.75,
+      "delta_day_neg1": -57.0,
+      "delta_day_neg2": 0.0,
+      "delta_avg_total": -28.5,
+      "day_neg1_tomatoes": 7288.0,
+      "day_neg2_tomatoes": 7681.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_001",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.63022344,
+        "BOOK_STEP_WEIGHT": 0.7070062,
+        "BOOK_DEPLETION_WEIGHT": 0.67454984,
+        "MICRO_DRIFT_WEIGHT": 0.60357314,
+        "PRESSURE_BIAS_SCALE": 0.24335494,
+        "BREAKOUT_FOLLOW_SCALE": 0.18104346,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.18987372,
+        "BREAKOUT_HOLD_BONUS": 0.11156021
+      },
+      "score": 14452.6,
+      "day_neg1_total": 14684.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14705.25,
+      "delta_day_neg1": -184.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": -39.0,
+      "day_neg1_tomatoes": 7161.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    },
+    {
+      "label": "random_002",
+      "family": "random",
+      "params": {
+        "BOOK_ACTIVITY_FLOOR": 0.60497461,
+        "BOOK_STEP_WEIGHT": 0.71611238,
+        "BOOK_DEPLETION_WEIGHT": 0.68711778,
+        "MICRO_DRIFT_WEIGHT": 0.56728991,
+        "PRESSURE_BIAS_SCALE": 0.20007191,
+        "BREAKOUT_FOLLOW_SCALE": 0.17090988,
+        "BREAKOUT_QUOTE_TIGHTEN": 0.19706948,
+        "BREAKOUT_HOLD_BONUS": 0.11653245
+      },
+      "score": 14452.6,
+      "day_neg1_total": 14684.0,
+      "day_neg2_total": 14726.5,
+      "avg_total": 14705.25,
+      "delta_day_neg1": -184.0,
+      "delta_day_neg2": 106.0,
+      "delta_avg_total": -39.0,
+      "day_neg1_tomatoes": 7161.0,
+      "day_neg2_tomatoes": 7787.5,
+      "day_neg1_emeralds": 7523.0,
+      "day_neg2_emeralds": 6939.0
+    }
+  ]
+}

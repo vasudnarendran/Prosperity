@@ -1,0 +1,69 @@
+V33 CMA-ES Optimization Report
+================================
+
+Algorithm: (6_w, 12)-CMA-ES  |  n=13  |  sigma0=0.15  |  25 generations
+Total evaluations: 602
+Objective: avg(day-1, day-2)
+
+V33 Baselines
+-------------
+Day -1 baseline:  14901.00
+Day -2 baseline:  15013.50
+Avg baseline:     14957.25
+
+Best Result
+-----------
+Day -1 PnL:   14711.00   (-190.00 vs V33 baseline)
+Day -2 PnL:   16067.50   (+1054.00 vs V33 baseline)
+Avg PnL:      15389.25   (+432.00 vs V33 avg)
+
+Parameter Comparison (V33 defaults → optimized)
+--------------------------------------------------------------
+Parameter                  V33 Default    Optimized     Change
+--------------------------------------------------------------
+GAMMA_RANGE                     0.6928       0.7521      +8.6%
+RESERVATION_SCALE               0.0200       0.0050     -75.0%
+RANGE_RESERVATION_BIAS          0.2649       0.3839     +45.0%
+SPREAD_VOL_COEF                 0.1000       0.6062    +506.2%
+SPREAD_INV_COEF                 1.1082       2.0000     +80.5%
+SPREAD_TIME_COEF                1.7791       1.5283     -14.1%
+BASE_TAKE_EDGE                  0.8000       0.6541     -18.2%
+ALPHA_EDGE_SCALE                1.4154       2.0000     +41.3%
+ALPHA_IMBALANCE_SCALE           0.7000       1.6171    +131.0%
+INVENTORY_SKEW                  0.0050       0.0010     -80.0%
+SOFT_LIMIT_RATIO                0.5683       0.6539     +15.1%
+MAX_QUOTE_EDGE                  9.0000      10.0380     +11.5%
+REGRESSION_HORIZON              0.5000       0.1000     -80.0%
+
+Generation History (avg PnL)
+----------------------------
+ Gen  Gen Best Avg  Global Best Avg     Sigma
+   1      15058.25         15058.25   0.13354
+   2      15072.75         15072.75   0.12941
+   3      15082.00         15082.00   0.12276
+   4      15252.75         15252.75   0.11774
+   5      15368.50         15368.50   0.12385
+   6      15319.75         15368.50   0.12715
+   7      15376.00         15376.00   0.13817
+   8      15328.50         15376.00   0.14516
+   9      15192.25         15376.00   0.15170
+  10      15248.00         15376.00   0.14771
+  11      15372.75         15376.00   0.14543
+  12      15339.50         15376.00   0.13847
+  13      15308.25         15376.00   0.13916
+  14      15301.25         15376.00   0.13789
+  15      15245.50         15376.00   0.14587
+  16      15368.50         15376.00   0.15548
+  17      15212.75         15376.00   0.14815
+  18      15324.25         15376.00   0.13556
+  19      15317.25         15376.00   0.12819
+  20      15331.00         15376.00   0.13478
+  21      15330.75         15376.00   0.13613
+  22      15389.25         15389.25   0.13902
+  23      15283.00         15389.25   0.14626
+  24      15349.50         15389.25   0.15336
+  25      15280.50         15389.25   0.15335
+
+Recommendation
+--------------
+WARNING: one or both days regressed vs V33 baseline. Review before submitting.
