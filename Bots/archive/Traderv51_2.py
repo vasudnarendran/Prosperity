@@ -241,9 +241,11 @@ class EmeraldsBot:
 
 class TomatoesBot:
     WALL_EMA_ALPHA = 0.25
+    WALL_STRENGTH_ALPHA = 0.22
     MID_EMA_ALPHA = 0.18
     VOL_EMA_ALPHA = 0.22
     TREND_EMA_ALPHA = 0.28
+    WALL_PERSISTENCE_FLOOR = 0.22
 
     FAIR_WALL_WEIGHT = 0.55
     FAIR_MID_WEIGHT = 0.15
@@ -256,10 +258,6 @@ class TomatoesBot:
     MAX_TAKE_SIZE = 10
     PASSIVE_SIZE = 8
     SOFT_LIMIT = 26
-    ALIGNED_TAKE_BOOST = 0.08
-    STRONG_ALIGNED_TAKE_BOOST = 0.12
-    NEAR_FLAT_PASSIVE_BONUS = 1
-    CALM_JOIN_EDGE_BONUS = 0.08
 
     TREND_SCORE = 0.70
     STRONG_SCORE = 1.50
@@ -284,6 +282,7 @@ class TomatoesBot:
             raw = {}
         return {
             "wall_fair_ema": float(raw.get("wall_fair_ema", 0.0)),
+            "wall_strength_ema": float(raw.get("wall_strength_ema", 0.0)),
             "mid_ema": float(raw.get("mid_ema", 0.0)),
             "vol_ema": float(raw.get("vol_ema", 1.5)),
             "trend_ema": float(raw.get("trend_ema", 0.0)),
@@ -294,6 +293,7 @@ class TomatoesBot:
     def save_product_state(self) -> None:
         self.memory["tomatoes"] = {
             "wall_fair_ema": self.product_state["wall_fair_ema"],
+            "wall_strength_ema": self.product_state["wall_strength_ema"],
             "mid_ema": self.product_state["mid_ema"],
             "vol_ema": self.product_state["vol_ema"],
             "trend_ema": self.product_state["trend_ema"],
@@ -312,23 +312,27 @@ class TomatoesBot:
             return None
         return sum(price * volume for price, volume in strong) / total
 
-    def current_wall_fair(self) -> float:
+    def current_wall_fair(self) -> Tuple[float, float]:
         wall_bid = self.wall_price(self.book.buy_levels)
         wall_ask = self.wall_price(self.book.sell_levels)
         if wall_bid is not None and wall_ask is not None and wall_bid < wall_ask:
-            return (wall_bid + wall_ask) / 2.0
-        return self.book.mid
+            top_bid = sum(volume for _price, volume in self.book.buy_levels[:3])
+            top_ask = sum(volume for _price, volume in self.book.sell_levels[:3])
+            strength = min(top_bid, top_ask) / max(1.0, max(top_bid, top_ask))
+            return (wall_bid + wall_ask) / 2.0, clamp(strength, 0.0, 1.0)
+        return self.book.mid, 0.0
 
     def update_state(self) -> None:
         if not self.book.valid:
             return
 
         current_mid = self.book.mid
-        current_wall = self.current_wall_fair()
+        current_wall, current_wall_strength = self.current_wall_fair()
         current_flow = self.book.imbalance * max(1.0, self.book.spread / 2.0)
 
         if self.product_state["initialized"] <= 0.0:
             self.product_state["wall_fair_ema"] = current_wall
+            self.product_state["wall_strength_ema"] = current_wall_strength
             self.product_state["mid_ema"] = current_mid
             self.product_state["vol_ema"] = max(1.0, self.book.spread / 2.0)
             self.product_state["trend_ema"] = current_flow
@@ -339,6 +343,9 @@ class TomatoesBot:
         ret = current_mid - self.product_state["last_mid"]
         self.product_state["wall_fair_ema"] = ema(
             self.product_state["wall_fair_ema"], current_wall, self.WALL_EMA_ALPHA
+        )
+        self.product_state["wall_strength_ema"] = ema(
+            self.product_state["wall_strength_ema"], current_wall_strength, self.WALL_STRENGTH_ALPHA
         )
         self.product_state["mid_ema"] = ema(
             self.product_state["mid_ema"], current_mid, self.MID_EMA_ALPHA
@@ -360,8 +367,15 @@ class TomatoesBot:
     def fair_value(self) -> float:
         half_spread = max(1.0, self.book.spread / 2.0)
         flow_fair = self.book.mid + self.book.imbalance * half_spread
+        wall_strength = clamp(
+            (float(self.product_state["wall_strength_ema"]) - self.WALL_PERSISTENCE_FLOOR)
+            / max(1e-9, 1.0 - self.WALL_PERSISTENCE_FLOOR),
+            0.0,
+            1.0,
+        )
+        wall_component = self.book.mid + wall_strength * (self.product_state["wall_fair_ema"] - self.book.mid)
         fair = (
-            self.FAIR_WALL_WEIGHT * self.product_state["wall_fair_ema"]
+            self.FAIR_WALL_WEIGHT * wall_component
             + self.FAIR_MID_WEIGHT * self.book.mid
             + self.FAIR_MICRO_WEIGHT * self.book.micro
             + self.FAIR_FLOW_WEIGHT * flow_fair
@@ -419,13 +433,6 @@ class TomatoesBot:
     def desired_sell_qty(self, target: int) -> int:
         return max(0, self.manager.projected_position() - target)
 
-    def aligned_side(self, regime: str) -> Optional[str]:
-        if regime in {"trend_up", "strong_up"}:
-            return "BUY"
-        if regime in {"trend_down", "strong_down"}:
-            return "SELL"
-        return None
-
     def inventory_pressure(self, target: int) -> float:
         return clamp(
             abs(self.manager.projected_position() - target) / max(1.0, float(self.SOFT_LIMIT)),
@@ -456,15 +463,6 @@ class TomatoesBot:
             threshold -= 0.10
         if side == "SELL" and position > target:
             threshold -= 0.10
-
-        aligned = self.aligned_side(regime)
-        if aligned == side:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                if regime in {"strong_up", "strong_down"}:
-                    threshold -= self.STRONG_ALIGNED_TAKE_BOOST
-                else:
-                    threshold -= self.ALIGNED_TAKE_BOOST
         return max(0.25, threshold)
 
     def take_size(self, side: str, regime: str, target: int) -> int:
@@ -551,9 +549,6 @@ class TomatoesBot:
                 edge += 0.90 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
             elif pressure > 0:
                 edge -= 0.25 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
-
-        if regime in {"stable", "range"} and self.book.spread <= 8 and abs(pressure) <= 6:
-            edge -= self.CALM_JOIN_EDGE_BONUS
         return max(1.2, edge)
 
     def passive_size(self, side: str, regime: str, target: int) -> int:
@@ -574,12 +569,6 @@ class TomatoesBot:
                 size += 2
             elif pressure < 0:
                 size = max(2, size - 3)
-
-        aligned = self.aligned_side(regime)
-        if aligned == side and abs(self.manager.projected_position()) <= 10:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                size += self.NEAR_FLAT_PASSIVE_BONUS
         return size
 
     def allow_passive(self, side: str, regime: str, target: int) -> bool:

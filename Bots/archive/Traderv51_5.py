@@ -245,9 +245,9 @@ class TomatoesBot:
     VOL_EMA_ALPHA = 0.22
     TREND_EMA_ALPHA = 0.28
 
-    FAIR_WALL_WEIGHT = 0.58
-    FAIR_MID_WEIGHT = 0.17
-    FAIR_MICRO_WEIGHT = 0.15
+    FAIR_WALL_WEIGHT = 0.55
+    FAIR_MID_WEIGHT = 0.15
+    FAIR_MICRO_WEIGHT = 0.20
     FAIR_FLOW_WEIGHT = 0.10
 
     INVENTORY_SKEW = 0.045
@@ -409,6 +409,12 @@ class TomatoesBot:
         pressure = self.manager.projected_position() - target
         return fair - pressure * self.INVENTORY_SKEW
 
+    def desired_buy_qty(self, target: int) -> int:
+        return max(0, target - self.manager.projected_position())
+
+    def desired_sell_qty(self, target: int) -> int:
+        return max(0, self.manager.projected_position() - target)
+
     def inventory_pressure(self, target: int) -> float:
         return clamp(
             abs(self.manager.projected_position() - target) / max(1.0, float(self.SOFT_LIMIT)),
@@ -454,14 +460,21 @@ class TomatoesBot:
             size = max(2, size - 3)
         return min(self.MAX_TAKE_SIZE, size)
 
-    def clear_inventory(self, reservation: float) -> None:
+    def clear_inventory(self, reservation: float, regime: str, target: int) -> None:
         position = self.manager.projected_position()
-        if position > 0 and self.book.best_bid >= math.floor(reservation):
+        sell_clear = reservation
+        buy_clear = reservation
+        if regime in {"trend_up", "strong_up"} and position > target:
+            sell_clear -= 1.0
+        if regime in {"trend_down", "strong_down"} and position < target:
+            buy_clear += 1.0
+
+        if position > 0 and self.book.best_bid >= math.floor(sell_clear):
             size = min(position, self.book.best_bid_volume, self.PASSIVE_SIZE)
             self.manager.add_sell(self.book.best_bid, size)
 
         position = self.manager.projected_position()
-        if position < 0 and self.book.best_ask <= math.ceil(reservation):
+        if position < 0 and self.book.best_ask <= math.ceil(buy_clear):
             size = min(abs(position), self.book.best_ask_volume, self.PASSIVE_SIZE)
             self.manager.add_buy(self.book.best_ask, size)
 
@@ -477,8 +490,12 @@ class TomatoesBot:
                 break
             size = min(volume, self.manager.buy_capacity, self.take_size("BUY", regime, target))
             if regime in {"trend_up", "strong_up"}:
-                size = min(size, max(1, target - self.manager.projected_position()))
-            self.manager.add_buy(price, size)
+                desired = self.desired_buy_qty(target)
+                if desired <= 0:
+                    continue
+                size = min(size, desired)
+            if size > 0:
+                self.manager.add_buy(price, size)
 
         for price, volume in self.book.buy_levels[:2]:
             if self.manager.sell_capacity <= 0:
@@ -488,8 +505,12 @@ class TomatoesBot:
                 break
             size = min(volume, self.manager.sell_capacity, self.take_size("SELL", regime, target))
             if regime in {"trend_down", "strong_down"}:
-                size = min(size, max(1, self.manager.projected_position() - target))
-            self.manager.add_sell(price, size)
+                desired = self.desired_sell_qty(target)
+                if desired <= 0:
+                    continue
+                size = min(size, desired)
+            if size > 0:
+                self.manager.add_sell(price, size)
 
     def quote_edge(self, side: str, regime: str, target: int) -> float:
         edge = self.BASE_QUOTE_EDGE + 0.20 * min(4.0, self.product_state["vol_ema"])
@@ -563,6 +584,18 @@ class TomatoesBot:
         buy_quote = math.floor(reservation - buy_edge)
         sell_quote = math.ceil(reservation + sell_edge)
 
+        position = self.manager.projected_position()
+        if regime in {"trend_up", "strong_up"}:
+            if position < target:
+                buy_quote += 1
+            elif position > target:
+                sell_quote -= 1
+        elif regime in {"trend_down", "strong_down"}:
+            if position > target:
+                sell_quote -= 1
+            elif position < target:
+                buy_quote += 1
+
         if buy_quote >= self.book.best_ask:
             buy_quote = self.book.best_bid
         if sell_quote <= self.book.best_bid:
@@ -585,7 +618,7 @@ class TomatoesBot:
         reservation = self.reservation(fair, target)
 
         self.take_orders(reservation, regime, target)
-        self.clear_inventory(self.reservation(fair, target))
+        self.clear_inventory(self.reservation(fair, target), regime, target)
         reservation = self.reservation(fair, target)
         buy_quote, sell_quote = self.passive_quotes(reservation, regime, target)
 
@@ -596,8 +629,13 @@ class TomatoesBot:
         ):
             size = min(self.passive_size("BUY", regime, target), self.manager.buy_capacity)
             if regime in {"trend_up", "strong_up"}:
-                size = min(size, max(1, target - self.manager.projected_position()))
-            self.manager.add_buy(buy_quote, size)
+                desired = self.desired_buy_qty(target)
+                if desired <= 0:
+                    size = 0
+                else:
+                    size = min(size, desired)
+            if size > 0:
+                self.manager.add_buy(buy_quote, size)
 
         if (
             sell_quote is not None
@@ -606,8 +644,13 @@ class TomatoesBot:
         ):
             size = min(self.passive_size("SELL", regime, target), self.manager.sell_capacity)
             if regime in {"trend_down", "strong_down"}:
-                size = min(size, max(1, self.manager.projected_position() - target))
-            self.manager.add_sell(sell_quote, size)
+                desired = self.desired_sell_qty(target)
+                if desired <= 0:
+                    size = 0
+                else:
+                    size = min(size, desired)
+            if size > 0:
+                self.manager.add_sell(sell_quote, size)
 
         self.save_product_state()
         return self.manager.orders, self.memory

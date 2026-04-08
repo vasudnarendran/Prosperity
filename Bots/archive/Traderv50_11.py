@@ -245,9 +245,9 @@ class TomatoesBot:
     VOL_EMA_ALPHA = 0.22
     TREND_EMA_ALPHA = 0.28
 
-    FAIR_WALL_WEIGHT = 0.55
-    FAIR_MID_WEIGHT = 0.15
-    FAIR_MICRO_WEIGHT = 0.20
+    FAIR_WALL_WEIGHT = 0.63
+    FAIR_MID_WEIGHT = 0.12
+    FAIR_MICRO_WEIGHT = 0.15
     FAIR_FLOW_WEIGHT = 0.10
 
     INVENTORY_SKEW = 0.045
@@ -256,10 +256,6 @@ class TomatoesBot:
     MAX_TAKE_SIZE = 10
     PASSIVE_SIZE = 8
     SOFT_LIMIT = 26
-    ALIGNED_TAKE_BOOST = 0.08
-    STRONG_ALIGNED_TAKE_BOOST = 0.12
-    NEAR_FLAT_PASSIVE_BONUS = 1
-    CALM_JOIN_EDGE_BONUS = 0.08
 
     TREND_SCORE = 0.70
     STRONG_SCORE = 1.50
@@ -413,19 +409,6 @@ class TomatoesBot:
         pressure = self.manager.projected_position() - target
         return fair - pressure * self.INVENTORY_SKEW
 
-    def desired_buy_qty(self, target: int) -> int:
-        return max(0, target - self.manager.projected_position())
-
-    def desired_sell_qty(self, target: int) -> int:
-        return max(0, self.manager.projected_position() - target)
-
-    def aligned_side(self, regime: str) -> Optional[str]:
-        if regime in {"trend_up", "strong_up"}:
-            return "BUY"
-        if regime in {"trend_down", "strong_down"}:
-            return "SELL"
-        return None
-
     def inventory_pressure(self, target: int) -> float:
         return clamp(
             abs(self.manager.projected_position() - target) / max(1.0, float(self.SOFT_LIMIT)),
@@ -456,15 +439,6 @@ class TomatoesBot:
             threshold -= 0.10
         if side == "SELL" and position > target:
             threshold -= 0.10
-
-        aligned = self.aligned_side(regime)
-        if aligned == side:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                if regime in {"strong_up", "strong_down"}:
-                    threshold -= self.STRONG_ALIGNED_TAKE_BOOST
-                else:
-                    threshold -= self.ALIGNED_TAKE_BOOST
         return max(0.25, threshold)
 
     def take_size(self, side: str, regime: str, target: int) -> int:
@@ -503,12 +477,8 @@ class TomatoesBot:
                 break
             size = min(volume, self.manager.buy_capacity, self.take_size("BUY", regime, target))
             if regime in {"trend_up", "strong_up"}:
-                desired = self.desired_buy_qty(target)
-                if desired <= 0:
-                    continue
-                size = min(size, desired)
-            if size > 0:
-                self.manager.add_buy(price, size)
+                size = min(size, max(1, target - self.manager.projected_position()))
+            self.manager.add_buy(price, size)
 
         for price, volume in self.book.buy_levels[:2]:
             if self.manager.sell_capacity <= 0:
@@ -518,12 +488,8 @@ class TomatoesBot:
                 break
             size = min(volume, self.manager.sell_capacity, self.take_size("SELL", regime, target))
             if regime in {"trend_down", "strong_down"}:
-                desired = self.desired_sell_qty(target)
-                if desired <= 0:
-                    continue
-                size = min(size, desired)
-            if size > 0:
-                self.manager.add_sell(price, size)
+                size = min(size, max(1, self.manager.projected_position() - target))
+            self.manager.add_sell(price, size)
 
     def quote_edge(self, side: str, regime: str, target: int) -> float:
         edge = self.BASE_QUOTE_EDGE + 0.20 * min(4.0, self.product_state["vol_ema"])
@@ -551,9 +517,6 @@ class TomatoesBot:
                 edge += 0.90 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
             elif pressure > 0:
                 edge -= 0.25 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
-
-        if regime in {"stable", "range"} and self.book.spread <= 8 and abs(pressure) <= 6:
-            edge -= self.CALM_JOIN_EDGE_BONUS
         return max(1.2, edge)
 
     def passive_size(self, side: str, regime: str, target: int) -> int:
@@ -574,12 +537,6 @@ class TomatoesBot:
                 size += 2
             elif pressure < 0:
                 size = max(2, size - 3)
-
-        aligned = self.aligned_side(regime)
-        if aligned == side and abs(self.manager.projected_position()) <= 10:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                size += self.NEAR_FLAT_PASSIVE_BONUS
         return size
 
     def allow_passive(self, side: str, regime: str, target: int) -> bool:
@@ -639,13 +596,8 @@ class TomatoesBot:
         ):
             size = min(self.passive_size("BUY", regime, target), self.manager.buy_capacity)
             if regime in {"trend_up", "strong_up"}:
-                desired = self.desired_buy_qty(target)
-                if desired <= 0:
-                    size = 0
-                else:
-                    size = min(size, desired)
-            if size > 0:
-                self.manager.add_buy(buy_quote, size)
+                size = min(size, max(1, target - self.manager.projected_position()))
+            self.manager.add_buy(buy_quote, size)
 
         if (
             sell_quote is not None
@@ -654,13 +606,8 @@ class TomatoesBot:
         ):
             size = min(self.passive_size("SELL", regime, target), self.manager.sell_capacity)
             if regime in {"trend_down", "strong_down"}:
-                desired = self.desired_sell_qty(target)
-                if desired <= 0:
-                    size = 0
-                else:
-                    size = min(size, desired)
-            if size > 0:
-                self.manager.add_sell(sell_quote, size)
+                size = min(size, max(1, self.manager.projected_position() - target))
+            self.manager.add_sell(sell_quote, size)
 
         self.save_product_state()
         return self.manager.orders, self.memory

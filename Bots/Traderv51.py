@@ -240,31 +240,50 @@ class EmeraldsBot:
 
 
 class TomatoesBot:
-    WALL_EMA_ALPHA = 0.25
-    MID_EMA_ALPHA = 0.18
+    WALL_EMA_ALPHA = 0.22
+    WALL_STRENGTH_ALPHA = 0.22
     VOL_EMA_ALPHA = 0.22
-    TREND_EMA_ALPHA = 0.28
+    FLOW_EMA_ALPHA = 0.28
 
-    FAIR_WALL_WEIGHT = 0.55
-    FAIR_MID_WEIGHT = 0.15
+    HISTORY_LENGTH = 30
+    REGRESSION_WINDOW = 12
+    REGRESSION_HORIZON = 1
+
+    ALPHA_REFERENCE_WEIGHT = 0.48
+    ALPHA_MID_WEIGHT = 0.20
+    ALPHA_MICRO_WEIGHT = 0.22
+    ALPHA_FLOW_WEIGHT = 0.10
+    ALPHA_CAP = 2.2
+    ALPHA_BLEND_WEIGHT = 0.32
+    RANGE_ALPHA_DAMP = 0.65
+    CONFLICT_ALPHA_DAMP = 0.72
+    MOMENTUM_ALPHA_DAMP = 0.82
+    POSITION_ALPHA_DAMP_START = 18
+    POSITION_ALPHA_DAMP_END = 40
+
+    FAIR_WALL_WEIGHT = 0.44
+    FAIR_MID_WEIGHT = 0.18
     FAIR_MICRO_WEIGHT = 0.20
-    FAIR_FLOW_WEIGHT = 0.10
+    FAIR_FLOW_WEIGHT = 0.08
+    FAIR_REGRESSION_WEIGHT = 0.10
+    FAIR_ALPHA_WEIGHT = 0.34
+    POSITION_BIAS_DIVISOR = 16.0
+    RANGE_REVERT_WEIGHT = 0.18
+    TREND_BONUS_WEIGHT = 0.10
 
     INVENTORY_SKEW = 0.045
-    BASE_QUOTE_EDGE = 2.2
-    BASE_TAKE_EDGE = 0.9
+    BASE_QUOTE_EDGE = 2.0
+    BASE_TAKE_EDGE = 0.82
     MAX_TAKE_SIZE = 10
     PASSIVE_SIZE = 8
     SOFT_LIMIT = 26
-    ALIGNED_TAKE_BOOST = 0.08
-    STRONG_ALIGNED_TAKE_BOOST = 0.12
-    NEAR_FLAT_PASSIVE_BONUS = 1
-    CALM_JOIN_EDGE_BONUS = 0.08
 
-    TREND_SCORE = 0.70
-    STRONG_SCORE = 1.50
+    TREND_EDGE_THRESHOLD = 0.95
+    STRONG_TREND_EDGE = 1.70
+    FIT_THRESHOLD = 0.35
     TOXIC_SPREAD = 12
     TOXIC_VOL = 2.8
+    WALL_PERSISTENCE_FLOOR = 0.22
 
     def __init__(self, state: TradingState, memory: Dict[str, object]) -> None:
         self.state = state
@@ -278,136 +297,272 @@ class TomatoesBot:
         self.memory = memory
         self.product_state = self.load_product_state()
 
-    def load_product_state(self) -> Dict[str, float]:
+    def load_product_state(self) -> Dict[str, object]:
         raw = self.memory.get("tomatoes", {})
         if not isinstance(raw, dict):
             raw = {}
+        history_raw = raw.get("mid_history", [])
+        history = []
+        if isinstance(history_raw, list):
+            history = [float(value) for value in history_raw[-self.HISTORY_LENGTH :]]
         return {
             "wall_fair_ema": float(raw.get("wall_fair_ema", 0.0)),
-            "mid_ema": float(raw.get("mid_ema", 0.0)),
+            "wall_strength_ema": float(raw.get("wall_strength_ema", 0.0)),
             "vol_ema": float(raw.get("vol_ema", 1.5)),
-            "trend_ema": float(raw.get("trend_ema", 0.0)),
+            "flow_ema": float(raw.get("flow_ema", 0.0)),
             "last_mid": float(raw.get("last_mid", 0.0)),
+            "mid_history": history,
             "initialized": 1.0 if raw.get("initialized") else 0.0,
         }
 
     def save_product_state(self) -> None:
         self.memory["tomatoes"] = {
-            "wall_fair_ema": self.product_state["wall_fair_ema"],
-            "mid_ema": self.product_state["mid_ema"],
-            "vol_ema": self.product_state["vol_ema"],
-            "trend_ema": self.product_state["trend_ema"],
-            "last_mid": self.product_state["last_mid"],
+            "wall_fair_ema": float(self.product_state["wall_fair_ema"]),
+            "wall_strength_ema": float(self.product_state["wall_strength_ema"]),
+            "vol_ema": float(self.product_state["vol_ema"]),
+            "flow_ema": float(self.product_state["flow_ema"]),
+            "last_mid": float(self.product_state["last_mid"]),
+            "mid_history": list(self.product_state["mid_history"])[-self.HISTORY_LENGTH :],
             "initialized": 1,
         }
 
-    def wall_price(self, levels: List[Tuple[int, int]]) -> Optional[float]:
-        if not levels:
-            return None
-        top = levels[:3]
-        max_volume = max(volume for _, volume in top)
-        strong = [(price, volume) for price, volume in top if volume >= 0.60 * max_volume]
-        total = sum(volume for _, volume in strong)
-        if total <= 0:
-            return None
-        return sum(price * volume for price, volume in strong) / total
+    def current_wall_fair(self) -> Tuple[float, float]:
+        bid_levels = self.book.buy_levels[:3]
+        ask_levels = self.book.sell_levels[:3]
+        if not bid_levels or not ask_levels:
+            return self.book.mid, 0.0
 
-    def current_wall_fair(self) -> float:
-        wall_bid = self.wall_price(self.book.buy_levels)
-        wall_ask = self.wall_price(self.book.sell_levels)
-        if wall_bid is not None and wall_ask is not None and wall_bid < wall_ask:
-            return (wall_bid + wall_ask) / 2.0
-        return self.book.mid
+        bid_weight = 0.0
+        bid_price_sum = 0.0
+        ask_weight = 0.0
+        ask_price_sum = 0.0
+
+        for index, (price, volume) in enumerate(bid_levels):
+            effective = max(0.0, float(volume) - 2.0)
+            if effective <= 0.0:
+                continue
+            weight = effective / (index + 1.0)
+            bid_weight += weight
+            bid_price_sum += weight * float(price)
+
+        for index, (price, volume) in enumerate(ask_levels):
+            effective = max(0.0, float(volume) - 2.0)
+            if effective <= 0.0:
+                continue
+            weight = effective / (index + 1.0)
+            ask_weight += weight
+            ask_price_sum += weight * float(price)
+
+        if bid_weight <= 1e-9 or ask_weight <= 1e-9:
+            return self.book.mid, 0.0
+
+        wall_bid = bid_price_sum / bid_weight
+        wall_ask = ask_price_sum / ask_weight
+        if wall_bid >= wall_ask:
+            return self.book.mid, 0.0
+
+        balance = min(bid_weight, ask_weight) / max(bid_weight, ask_weight)
+        depth_strength = min(1.0, (bid_weight + ask_weight) / 18.0)
+        strength = max(0.0, min(1.0, balance * depth_strength))
+        return (wall_bid + wall_ask) / 2.0, strength
 
     def update_state(self) -> None:
         if not self.book.valid:
             return
 
         current_mid = self.book.mid
-        current_wall = self.current_wall_fair()
+        current_wall, current_wall_strength = self.current_wall_fair()
         current_flow = self.book.imbalance * max(1.0, self.book.spread / 2.0)
 
         if self.product_state["initialized"] <= 0.0:
             self.product_state["wall_fair_ema"] = current_wall
-            self.product_state["mid_ema"] = current_mid
+            self.product_state["wall_strength_ema"] = current_wall_strength
             self.product_state["vol_ema"] = max(1.0, self.book.spread / 2.0)
-            self.product_state["trend_ema"] = current_flow
+            self.product_state["flow_ema"] = current_flow
             self.product_state["last_mid"] = current_mid
+            self.product_state["mid_history"] = [current_mid]
             self.product_state["initialized"] = 1.0
             return
 
-        ret = current_mid - self.product_state["last_mid"]
+        ret = current_mid - float(self.product_state["last_mid"])
         self.product_state["wall_fair_ema"] = ema(
-            self.product_state["wall_fair_ema"], current_wall, self.WALL_EMA_ALPHA
+            float(self.product_state["wall_fair_ema"]), current_wall, self.WALL_EMA_ALPHA
         )
-        self.product_state["mid_ema"] = ema(
-            self.product_state["mid_ema"], current_mid, self.MID_EMA_ALPHA
+        self.product_state["wall_strength_ema"] = ema(
+            float(self.product_state["wall_strength_ema"]), current_wall_strength, self.WALL_STRENGTH_ALPHA
         )
         self.product_state["vol_ema"] = ema(
-            self.product_state["vol_ema"], abs(ret), self.VOL_EMA_ALPHA
+            float(self.product_state["vol_ema"]), abs(ret), self.VOL_EMA_ALPHA
         )
-
-        trend_raw = (
-            self.product_state["wall_fair_ema"] - self.product_state["mid_ema"]
-            + 0.60 * (self.book.micro - self.book.mid)
-            + 0.80 * current_flow
+        self.product_state["flow_ema"] = ema(
+            float(self.product_state["flow_ema"]), current_flow, self.FLOW_EMA_ALPHA
         )
-        self.product_state["trend_ema"] = ema(
-            self.product_state["trend_ema"], trend_raw, self.TREND_EMA_ALPHA
-        )
+        history = list(self.product_state["mid_history"])
+        history.append(current_mid)
+        self.product_state["mid_history"] = history[-self.HISTORY_LENGTH :]
         self.product_state["last_mid"] = current_mid
 
-    def fair_value(self) -> float:
-        half_spread = max(1.0, self.book.spread / 2.0)
-        flow_fair = self.book.mid + self.book.imbalance * half_spread
-        fair = (
-            self.FAIR_WALL_WEIGHT * self.product_state["wall_fair_ema"]
-            + self.FAIR_MID_WEIGHT * self.book.mid
-            + self.FAIR_MICRO_WEIGHT * self.book.micro
-            + self.FAIR_FLOW_WEIGHT * flow_fair
+    def recent_average(self) -> float:
+        history = self.product_state["mid_history"]
+        if not history:
+            return self.book.mid
+        return sum(history) / len(history)
+
+    def momentum(self) -> float:
+        history = self.product_state["mid_history"]
+        if not history:
+            return 0.0
+        return self.book.mid - history[-1]
+
+    def regression_metrics(self) -> Tuple[float, float, float, float]:
+        history = list(self.product_state["mid_history"])[-self.REGRESSION_WINDOW :]
+        if len(history) < 2:
+            return self.book.mid, self.book.mid, 0.0, max(1.0, float(self.product_state["vol_ema"]))
+
+        n = len(history)
+        x_mean = (n - 1) / 2.0
+        y_mean = sum(history) / n
+        var_x = sum((index - x_mean) ** 2 for index in range(n))
+        cov_xy = sum((index - x_mean) * (price - y_mean) for index, price in enumerate(history))
+        slope = cov_xy / var_x if var_x else 0.0
+        intercept = y_mean - slope * x_mean
+
+        fitted = [intercept + slope * index for index in range(n)]
+        predicted_now = fitted[-1]
+        predicted_next = intercept + slope * ((n - 1) + self.REGRESSION_HORIZON)
+
+        ss_tot = sum((price - y_mean) ** 2 for price in history)
+        ss_res = sum((price - fit) ** 2 for price, fit in zip(history, fitted))
+        fit_quality = 0.0 if ss_tot <= 1e-9 else clamp(1.0 - (ss_res / ss_tot), 0.0, 1.0)
+
+        diffs = [abs(history[index] - history[index - 1]) for index in range(1, n)]
+        volatility = sum(diffs) / len(diffs) if diffs else max(1.0, float(self.product_state["vol_ema"]))
+        return predicted_now, predicted_next, fit_quality, max(1.0, volatility)
+
+    def hybrid_alpha(self) -> float:
+        reference_price = self.recent_average()
+        wall_strength = clamp(float(self.product_state["wall_strength_ema"]), 0.0, 1.0)
+        if wall_strength >= self.WALL_PERSISTENCE_FLOOR:
+            reference_price += 0.20 * wall_strength * (float(self.product_state["wall_fair_ema"]) - reference_price)
+        half_spread = max(1.0, float(self.book.spread) / 2.0)
+        flow_fair = float(self.book.mid) + self.book.imbalance * half_spread
+        hybrid_fair = (
+            self.ALPHA_REFERENCE_WEIGHT * reference_price
+            + self.ALPHA_MID_WEIGHT * float(self.book.mid)
+            + self.ALPHA_MICRO_WEIGHT * float(self.book.micro)
+            + self.ALPHA_FLOW_WEIGHT * flow_fair
         )
+        return clamp(hybrid_fair - float(self.book.mid), -self.ALPHA_CAP, self.ALPHA_CAP)
 
-        trend = self.product_state["trend_ema"]
-        if trend > self.TREND_SCORE:
-            fair += 0.20 * min(2.0, trend)
-        elif trend < -self.TREND_SCORE:
-            fair -= 0.20 * min(2.0, abs(trend))
-        return fair
+    def guarded_alpha(self, hybrid_alpha: float, regression_edge: float, regime: str) -> float:
+        weight = 1.0
+        if regime in {"range", "stable"}:
+            weight *= self.RANGE_ALPHA_DAMP
+        if hybrid_alpha * regression_edge < 0:
+            weight *= self.CONFLICT_ALPHA_DAMP
+        if hybrid_alpha * self.book.imbalance < 0:
+            weight *= self.CONFLICT_ALPHA_DAMP
+        if hybrid_alpha * self.momentum() < 0:
+            weight *= self.MOMENTUM_ALPHA_DAMP
 
-    def regime(self) -> str:
-        trend = self.product_state["trend_ema"]
-        vol = self.product_state["vol_ema"]
-        if self.book.spread >= self.TOXIC_SPREAD and vol >= self.TOXIC_VOL:
+        position = self.manager.projected_position()
+        if hybrid_alpha * position > 0:
+            abs_pos = abs(position)
+            if abs_pos >= self.POSITION_ALPHA_DAMP_START:
+                if abs_pos >= self.POSITION_ALPHA_DAMP_END:
+                    weight = 0.0
+                else:
+                    span = self.POSITION_ALPHA_DAMP_END - self.POSITION_ALPHA_DAMP_START
+                    ratio = (abs_pos - self.POSITION_ALPHA_DAMP_START) / max(1.0, span)
+                    weight *= max(0.0, 1.0 - ratio)
+        return hybrid_alpha * weight
+
+    def classify_regime(self, predicted_edge: float, fit_quality: float, volatility: float) -> str:
+        if self.book.spread >= self.TOXIC_SPREAD and volatility >= self.TOXIC_VOL:
             return "toxic"
-        if trend >= self.STRONG_SCORE and self.book.imbalance > 0.03:
+        if (
+            predicted_edge >= self.STRONG_TREND_EDGE
+            and fit_quality >= self.FIT_THRESHOLD
+            and self.book.imbalance > 0.03
+            and self.book.micro >= self.book.mid
+        ):
             return "strong_up"
-        if trend <= -self.STRONG_SCORE and self.book.imbalance < -0.03:
+        if (
+            predicted_edge <= -self.STRONG_TREND_EDGE
+            and fit_quality >= self.FIT_THRESHOLD
+            and self.book.imbalance < -0.03
+            and self.book.micro <= self.book.mid
+        ):
             return "strong_down"
-        if trend >= self.TREND_SCORE:
+        if (
+            predicted_edge >= self.TREND_EDGE_THRESHOLD
+            and fit_quality >= self.FIT_THRESHOLD
+            and self.book.imbalance >= 0.01
+        ):
             return "trend_up"
-        if trend <= -self.TREND_SCORE:
+        if (
+            predicted_edge <= -self.TREND_EDGE_THRESHOLD
+            and fit_quality >= self.FIT_THRESHOLD
+            and self.book.imbalance <= -0.01
+        ):
             return "trend_down"
-        if self.book.spread <= 8 and vol <= 1.8:
+        if self.book.spread <= 8 and volatility <= 1.8:
             return "stable"
         return "range"
 
-    def target_position(self, regime: str, fair: float) -> int:
-        alpha = fair - self.book.mid
-        conviction = clamp(abs(alpha) / max(1.0, self.book.spread / 2.0), 0.0, 1.0)
+    def target_position(self, regime: str, predicted_edge: float, fit_quality: float) -> int:
+        conviction = clamp(
+            abs(predicted_edge) * max(0.55, fit_quality) / max(1.0, self.book.spread / 2.0),
+            0.0,
+            1.0,
+        )
         if regime == "strong_up":
-            return int(round((self.SOFT_LIMIT + 8) * conviction))
+            return int(round((self.SOFT_LIMIT + 10) * conviction))
         if regime == "strong_down":
-            return -int(round((self.SOFT_LIMIT + 8) * conviction))
+            return -int(round((self.SOFT_LIMIT + 10) * conviction))
         if regime == "trend_up":
-            return int(round(self.SOFT_LIMIT * conviction))
+            return int(round((self.SOFT_LIMIT + 2) * conviction))
         if regime == "trend_down":
-            return -int(round(self.SOFT_LIMIT * conviction))
+            return -int(round((self.SOFT_LIMIT + 2) * conviction))
         if regime == "toxic":
             return 0
 
-        residual = self.book.mid - self.product_state["wall_fair_ema"]
-        normalized = residual / max(2.0, self.product_state["vol_ema"] * 2.0)
-        return int(round(-0.25 * self.SOFT_LIMIT * clamp(normalized, -1.0, 1.0)))
+        residual = self.book.mid - float(self.product_state["wall_fair_ema"])
+        normalized = residual / max(2.0, float(self.product_state["vol_ema"]) * 2.0)
+        return int(round(-0.22 * self.SOFT_LIMIT * clamp(normalized, -1.0, 1.0)))
+
+    def fair_value(
+        self,
+        regime: str,
+        target: int,
+        predicted_now: float,
+        predicted_next: float,
+        guarded_alpha: float,
+    ) -> float:
+        half_spread = max(1.0, self.book.spread / 2.0)
+        flow_fair = self.book.mid + self.book.imbalance * half_spread
+        wall_strength = clamp(float(self.product_state["wall_strength_ema"]), 0.0, 1.0)
+        wall_fair = float(self.product_state["wall_fair_ema"])
+
+        fair = (
+            self.FAIR_WALL_WEIGHT * wall_fair
+            + self.FAIR_MID_WEIGHT * self.book.mid
+            + self.FAIR_MICRO_WEIGHT * self.book.micro
+            + self.FAIR_FLOW_WEIGHT * flow_fair
+            + self.FAIR_REGRESSION_WEIGHT * predicted_next
+        )
+        fair += self.FAIR_ALPHA_WEIGHT * guarded_alpha
+        fair += (target - self.manager.projected_position()) / self.POSITION_BIAS_DIVISOR
+
+        line_gap = predicted_now - self.book.mid
+        if regime in {"range", "stable"}:
+            fair += self.RANGE_REVERT_WEIGHT * line_gap
+        else:
+            fair += self.TREND_BONUS_WEIGHT * (predicted_next - self.book.mid)
+
+        if wall_strength < self.WALL_PERSISTENCE_FLOOR:
+            fair -= 0.15 * (wall_fair - self.book.mid)
+        return fair
 
     def reservation(self, fair: float, target: int) -> float:
         pressure = self.manager.projected_position() - target
@@ -419,52 +574,42 @@ class TomatoesBot:
     def desired_sell_qty(self, target: int) -> int:
         return max(0, self.manager.projected_position() - target)
 
-    def aligned_side(self, regime: str) -> Optional[str]:
-        if regime in {"trend_up", "strong_up"}:
-            return "BUY"
-        if regime in {"trend_down", "strong_down"}:
-            return "SELL"
-        return None
-
-    def inventory_pressure(self, target: int) -> float:
-        return clamp(
-            abs(self.manager.projected_position() - target) / max(1.0, float(self.SOFT_LIMIT)),
-            0.0,
-            1.0,
-        )
-
-    def take_threshold(self, side: str, regime: str, target: int) -> float:
-        threshold = self.BASE_TAKE_EDGE + 0.10 * min(3.0, self.product_state["vol_ema"])
+    def take_threshold(
+        self,
+        side: str,
+        regime: str,
+        target: int,
+        predicted_edge: float,
+        fit_quality: float,
+        volatility: float,
+    ) -> float:
+        threshold = self.BASE_TAKE_EDGE + 0.08 * min(3.0, volatility)
         position = self.manager.projected_position()
 
         if regime == "stable":
-            threshold += 0.05
+            threshold += 0.02
         elif regime == "range":
             threshold += 0.00
         elif regime == "trend_up":
-            threshold += -0.35 if side == "BUY" else 0.50
+            threshold += -0.28 if side == "BUY" else 0.42
         elif regime == "trend_down":
-            threshold += -0.35 if side == "SELL" else 0.50
+            threshold += -0.28 if side == "SELL" else 0.42
         elif regime == "strong_up":
-            threshold += -0.50 if side == "BUY" else 0.70
+            threshold += -0.40 if side == "BUY" else 0.60
         elif regime == "strong_down":
-            threshold += -0.50 if side == "SELL" else 0.70
+            threshold += -0.40 if side == "SELL" else 0.60
         else:
-            threshold += 0.65
+            threshold += 0.60
 
         if side == "BUY" and position < target:
             threshold -= 0.10
         if side == "SELL" and position > target:
             threshold -= 0.10
 
-        aligned = self.aligned_side(regime)
-        if aligned == side:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                if regime in {"strong_up", "strong_down"}:
-                    threshold -= self.STRONG_ALIGNED_TAKE_BOOST
-                else:
-                    threshold -= self.ALIGNED_TAKE_BOOST
+        if predicted_edge > 0 and side == "BUY":
+            threshold -= min(0.16, 0.05 * predicted_edge * max(0.5, fit_quality))
+        elif predicted_edge < 0 and side == "SELL":
+            threshold -= min(0.16, 0.05 * abs(predicted_edge) * max(0.5, fit_quality))
         return max(0.25, threshold)
 
     def take_size(self, side: str, regime: str, target: int) -> int:
@@ -480,29 +625,46 @@ class TomatoesBot:
             size = max(2, size - 3)
         return min(self.MAX_TAKE_SIZE, size)
 
-    def clear_inventory(self, reservation: float) -> None:
+    def clear_inventory(self, reservation: float, regime: str, target: int) -> None:
         position = self.manager.projected_position()
-        if position > 0 and self.book.best_bid >= math.floor(reservation):
+        long_clear = reservation
+        short_clear = reservation
+        if regime in {"trend_up", "strong_up"} and position > max(0, target):
+            long_clear += 1.0
+        if regime in {"trend_down", "strong_down"} and position < min(0, target):
+            short_clear -= 1.0
+
+        if position > 0 and self.book.best_bid >= math.floor(long_clear):
             size = min(position, self.book.best_bid_volume, self.PASSIVE_SIZE)
             self.manager.add_sell(self.book.best_bid, size)
 
         position = self.manager.projected_position()
-        if position < 0 and self.book.best_ask <= math.ceil(reservation):
+        if position < 0 and self.book.best_ask <= math.ceil(short_clear):
             size = min(abs(position), self.book.best_ask_volume, self.PASSIVE_SIZE)
             self.manager.add_buy(self.book.best_ask, size)
 
-    def take_orders(self, reservation: float, regime: str, target: int) -> None:
-        buy_threshold = self.take_threshold("BUY", regime, target)
-        sell_threshold = self.take_threshold("SELL", regime, target)
+    def take_orders(
+        self,
+        reservation: float,
+        regime: str,
+        target: int,
+        predicted_edge: float,
+        fit_quality: float,
+        volatility: float,
+    ) -> None:
+        buy_threshold = self.take_threshold("BUY", regime, target, predicted_edge, fit_quality, volatility)
+        sell_threshold = self.take_threshold("SELL", regime, target, predicted_edge, fit_quality, volatility)
 
         for price, volume in self.book.sell_levels[:2]:
             if self.manager.buy_capacity <= 0:
+                break
+            if regime != "range" and self.manager.projected_position() >= target:
                 break
             edge = reservation - float(price)
             if edge < buy_threshold:
                 break
             size = min(volume, self.manager.buy_capacity, self.take_size("BUY", regime, target))
-            if regime in {"trend_up", "strong_up"}:
+            if regime != "range":
                 desired = self.desired_buy_qty(target)
                 if desired <= 0:
                     continue
@@ -513,11 +675,13 @@ class TomatoesBot:
         for price, volume in self.book.buy_levels[:2]:
             if self.manager.sell_capacity <= 0:
                 break
+            if regime != "range" and self.manager.projected_position() <= target:
+                break
             edge = float(price) - reservation
             if edge < sell_threshold:
                 break
             size = min(volume, self.manager.sell_capacity, self.take_size("SELL", regime, target))
-            if regime in {"trend_down", "strong_down"}:
+            if regime != "range":
                 desired = self.desired_sell_qty(target)
                 if desired <= 0:
                     continue
@@ -525,38 +689,35 @@ class TomatoesBot:
             if size > 0:
                 self.manager.add_sell(price, size)
 
-    def quote_edge(self, side: str, regime: str, target: int) -> float:
-        edge = self.BASE_QUOTE_EDGE + 0.20 * min(4.0, self.product_state["vol_ema"])
+    def quote_edge(self, side: str, regime: str, target: int, volatility: float, fit_quality: float) -> float:
+        edge = self.BASE_QUOTE_EDGE + 0.18 * min(4.0, volatility)
         edge += 0.08 * max(0, self.book.spread - 6)
         pressure = self.manager.projected_position() - target
 
         if regime == "stable":
-            edge -= 0.40
+            edge -= 0.35
         elif regime == "range":
             edge += 0.00
         elif regime in {"trend_up", "trend_down"}:
-            edge += 0.15
+            edge += 0.10 + 0.08 * fit_quality
         elif regime in {"strong_up", "strong_down"}:
-            edge += 0.10
+            edge += 0.06 + 0.05 * fit_quality
         else:
-            edge += 0.85
+            edge += 0.80
 
         if side == "BUY":
             if pressure > 0:
-                edge += 0.90 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
+                edge += 0.85 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
             elif pressure < 0:
-                edge -= 0.25 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
+                edge -= 0.22 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
         else:
             if pressure < 0:
-                edge += 0.90 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
+                edge += 0.85 * clamp(abs(pressure) / self.SOFT_LIMIT, 0.0, 1.0)
             elif pressure > 0:
-                edge -= 0.25 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
-
-        if regime in {"stable", "range"} and self.book.spread <= 8 and abs(pressure) <= 6:
-            edge -= self.CALM_JOIN_EDGE_BONUS
+                edge -= 0.22 * clamp(pressure / self.SOFT_LIMIT, 0.0, 1.0)
         return max(1.2, edge)
 
-    def passive_size(self, side: str, regime: str, target: int) -> int:
+    def passive_size(self, side: str, regime: str, target: int, volatility: float) -> int:
         size = self.PASSIVE_SIZE
         if regime == "stable":
             size += 1
@@ -574,12 +735,8 @@ class TomatoesBot:
                 size += 2
             elif pressure < 0:
                 size = max(2, size - 3)
-
-        aligned = self.aligned_side(regime)
-        if aligned == side and abs(self.manager.projected_position()) <= 10:
-            desired = self.desired_buy_qty(target) if side == "BUY" else self.desired_sell_qty(target)
-            if desired > 0:
-                size += self.NEAR_FLAT_PASSIVE_BONUS
+        if regime in {"trend_up", "trend_down"} and volatility <= 2.2:
+            size += 1
         return size
 
     def allow_passive(self, side: str, regime: str, target: int) -> bool:
@@ -590,21 +747,36 @@ class TomatoesBot:
             return False
         if regime == "toxic" and abs(position) <= 4:
             return False
-        if regime == "strong_up" and side == "SELL" and position <= max(4, target // 4):
+        if regime in {"trend_up", "strong_up"} and side == "SELL" and position <= max(4, target // 4):
             return False
-        if regime == "trend_up" and side == "SELL" and position <= 4:
-            return False
-        if regime == "strong_down" and side == "BUY" and position >= min(-4, target // 4):
-            return False
-        if regime == "trend_down" and side == "BUY" and position >= -4:
+        if regime in {"trend_down", "strong_down"} and side == "BUY" and position >= min(-4, target // 4):
             return False
         return True
 
-    def passive_quotes(self, reservation: float, regime: str, target: int) -> Tuple[Optional[int], Optional[int]]:
-        buy_edge = self.quote_edge("BUY", regime, target)
-        sell_edge = self.quote_edge("SELL", regime, target)
+    def passive_quotes(
+        self,
+        reservation: float,
+        regime: str,
+        target: int,
+        predicted_edge: float,
+        fit_quality: float,
+        volatility: float,
+    ) -> Tuple[Optional[int], Optional[int]]:
+        buy_edge = self.quote_edge("BUY", regime, target, volatility, fit_quality)
+        sell_edge = self.quote_edge("SELL", regime, target, volatility, fit_quality)
         buy_quote = math.floor(reservation - buy_edge)
         sell_quote = math.ceil(reservation + sell_edge)
+
+        if regime in {"trend_up", "strong_up"}:
+            if buy_quote < self.book.best_bid + 1 and self.manager.projected_position() < target:
+                buy_quote = self.book.best_bid + 1
+            if predicted_edge >= self.TREND_EDGE_THRESHOLD and self.manager.projected_position() > 0:
+                sell_quote += 1
+        elif regime in {"trend_down", "strong_down"}:
+            if sell_quote > self.book.best_ask - 1 and self.manager.projected_position() > target:
+                sell_quote = self.book.best_ask - 1
+            if predicted_edge <= -self.TREND_EDGE_THRESHOLD and self.manager.projected_position() < 0:
+                buy_quote -= 1
 
         if buy_quote >= self.book.best_ask:
             buy_quote = self.book.best_bid
@@ -622,23 +794,34 @@ class TomatoesBot:
             return [], self.memory
 
         self.update_state()
-        fair = self.fair_value()
-        regime = self.regime()
-        target = self.target_position(regime, fair)
+        predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
+        regression_edge = predicted_next - float(self.book.mid)
+        provisional_regime = self.classify_regime(regression_edge, fit_quality, volatility)
+        hybrid_alpha = self.hybrid_alpha()
+        guarded_alpha = self.guarded_alpha(hybrid_alpha, regression_edge, provisional_regime)
+        predicted_edge = (
+            (1.0 - self.ALPHA_BLEND_WEIGHT) * regression_edge
+            + self.ALPHA_BLEND_WEIGHT * guarded_alpha
+        )
+        regime = self.classify_regime(predicted_edge, fit_quality, volatility)
+        target = self.target_position(regime, predicted_edge, fit_quality)
+        fair = self.fair_value(regime, target, predicted_now, predicted_next, guarded_alpha)
         reservation = self.reservation(fair, target)
 
-        self.take_orders(reservation, regime, target)
-        self.clear_inventory(self.reservation(fair, target))
+        self.take_orders(reservation, regime, target, predicted_edge, fit_quality, volatility)
+        self.clear_inventory(self.reservation(fair, target), regime, target)
         reservation = self.reservation(fair, target)
-        buy_quote, sell_quote = self.passive_quotes(reservation, regime, target)
+        buy_quote, sell_quote = self.passive_quotes(
+            reservation, regime, target, predicted_edge, fit_quality, volatility
+        )
 
         if (
             buy_quote is not None
             and self.manager.buy_capacity > 0
             and self.allow_passive("BUY", regime, target)
         ):
-            size = min(self.passive_size("BUY", regime, target), self.manager.buy_capacity)
-            if regime in {"trend_up", "strong_up"}:
+            size = min(self.passive_size("BUY", regime, target, volatility), self.manager.buy_capacity)
+            if regime != "range":
                 desired = self.desired_buy_qty(target)
                 if desired <= 0:
                     size = 0
@@ -652,8 +835,8 @@ class TomatoesBot:
             and self.manager.sell_capacity > 0
             and self.allow_passive("SELL", regime, target)
         ):
-            size = min(self.passive_size("SELL", regime, target), self.manager.sell_capacity)
-            if regime in {"trend_down", "strong_down"}:
+            size = min(self.passive_size("SELL", regime, target, volatility), self.manager.sell_capacity)
+            if regime != "range":
                 desired = self.desired_sell_qty(target)
                 if desired <= 0:
                     size = 0
