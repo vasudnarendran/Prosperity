@@ -1,0 +1,51 @@
+{
+  "candidate_id": "v51-1-exec-it04-cand06",
+  "objective": 26695.784499999998,
+  "days": [
+    {
+      "day": -2.0,
+      "total": 12008.0,
+      "emeralds": 7152.0,
+      "tomatoes": 4856.0,
+      "own_trades": 899.0,
+      "avg_abs_inventory": 3.9939
+    },
+    {
+      "day": -1.0,
+      "total": 12305.0,
+      "emeralds": 7717.0,
+      "tomatoes": 4588.0,
+      "own_trades": 932.0,
+      "avg_abs_inventory": 3.5323
+    }
+  ],
+  "total": 24313.0,
+  "tomatoes_total": 9444.0,
+  "min_day_total": 12008.0,
+  "avg_inventory": 3.7631,
+  "inventory_penalty": 18.8155,
+  "iteration": 4,
+  "params": {
+    "CLASS:TomatoesBot.ALPHA_BLEND_WEIGHT": 0.2667628572003196,
+    "CLASS:TomatoesBot.FAIR_ALPHA_WEIGHT": 0.3325609292643899,
+    "CLASS:TomatoesBot.INVENTORY_SKEW": 0.04514586966259889,
+    "CLASS:TomatoesBot.BASE_QUOTE_EDGE": 2.0660764380636607,
+    "CLASS:TomatoesBot.BASE_TAKE_EDGE": 0.8322715145413894,
+    "CLASS:TomatoesBot.FIT_THRESHOLD": 0.4237696448117624,
+    "CLASS:TomatoesBot.TREND_EDGE_THRESHOLD": 0.956682642741183,
+    "CLASS:TomatoesBot.PASSIVE_SIZE": 9.016860480396806,
+    "CLASS:TomatoesBot.MAX_TAKE_SIZE": 10.248229699496507
+  },
+  "vector": [
+    0.2667628572003196,
+    0.3325609292643899,
+    0.04514586966259889,
+    2.0660764380636607,
+    0.8322715145413894,
+    0.4237696448117624,
+    0.956682642741183,
+    9.016860480396806,
+    10.248229699496507
+  ],
+  "rank": 1
+}

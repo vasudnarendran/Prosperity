@@ -1,0 +1,20 @@
+{
+  "label": "v40_state_11",
+  "run_id": "v40-state-sweep-15",
+  "total": 15486.0,
+  "emeralds": 7723.0,
+  "tomatoes": 7763.0,
+  "trades": 682,
+  "params": {
+    "CALM_JOIN_IMPROVEMENT": 1.0,
+    "CALM_QUOTE_EDGE_MULT": 0.94,
+    "FAST_QUOTE_EDGE_MULT": 1.02,
+    "FAST_TAKE_EDGE_BONUS": 0.12,
+    "FAST_TARGET_BONUS": 4.0,
+    "INVENTORY_EDGE_PRESSURE": 0.42,
+    "INVENTORY_SIZE_PRESSURE": 0.35,
+    "GOOD_FILL_TAKE_BONUS": 0.04,
+    "BAD_FILL_TAKE_PENALTY": 0.2,
+    "BAD_FILL_QUOTE_PENALTY": 0.06
+  }
+}

@@ -518,6 +518,42 @@ Improvement: Clean upload-safe continuation of the plateau sweep winner, pushing
 Notes: New best official bot. Rust PnL reached 14'438 with EMERALDS unchanged at 7'403 and TOMATOES at 7'035 over 722 trades. Officially, V29.4 improved from 2'386.875 to 2'394.875. EMERALDS stayed exactly fixed at 1'050.0, and TOMATOES improved from 1'336.875 to 1'344.875 with the same trade counts, a slightly better average buy, and an unchanged average sell.
 PnL: Official 2'394.9 | Rust 14'438
 
+V29.5:
+Works: Yes
+Improvement: Avellaneda-Stoikov experiment for TOMATOES on top of the stable V29-family scaffold. Keeps EMERALDS behavior effectively unchanged, while TOMATOES switches to an A-S style reservation price, optimal half-spread, regime-specific gamma and k, and softer target-position logic tied to trend / range / volatile states.
+Notes: Interesting concept, but materially weaker in this first form. Rust PnL reached 9'787 with EMERALDS unchanged at 7'403 and TOMATOES collapsing to 2'384 over 688 trades. The replay suggests the main failure mode was not zero passive fills, but weaker passive fill quality and lower trend participation: TOMATOES carried much less inventory, took less aggressively in trends, and still got passively picked off too often.
+PnL: Official N/A | Rust 9'787
+
+V29.5.1:
+Works: Yes
+Improvement: First narrow calibration pass on the V29.5 A-S TOMATOES branch. Changes were exactly: `TAKE_FRACTION_OF_SPREAD` `0.55 -> 0.42`, `TREND_QUOTE_SKEW` `0.40 -> 0.18`, `AS_GAMMA_TREND` `0.08 -> 0.05`, `AS_GAMMA_VOLATILE` `0.20 -> 0.12`, `AS_K_TREND` `1.60 -> 1.25`, and `AS_K_RANGE` `1.20 -> 1.00`.
+Notes: Small improvement, but not a recovery. Rust PnL rose from 9'787 to 9'886, with EMERALDS unchanged at 7'403 and TOMATOES improving slightly from 2'384 to 2'483 over 689 trades. The tuning made TOMATOES a bit more willing to take and slightly less inventory-damped, but passive quote quality remained poor and the branch still stayed far below both V29.4 and V36.2.
+PnL: Official N/A | Rust 9'886
+
+V29.6:
+Works: Yes
+Improvement: Minimal hybrid on top of the strong V29.4 family. Keeps the old TOMATOES alpha stack, target logic, and taker flow unchanged, and adds only a small capped Avellaneda-Stoikov style reservation overlay to the passive quote center. The A-S layer is inventory-and-volatility-only and does not control the whole quote center, spread, or taker decisions.
+Notes: Safe but weaker than V29.4. Rust PnL reached 14'145 with EMERALDS unchanged at 7'403 and TOMATOES at 6'742 over 720 trades. So the “A-S as risk-control layer, not trading brain” idea is viable and much safer than the full V29.5 rewrite, but even this light overlay reduced TOMATOES flow and gave back edge versus V29.4's 7'035 TOMATOES result.
+PnL: Official N/A | Rust 14'145
+
+V29.7:
+Works: Yes
+Improvement: Phase 1 CMA-ES tuned continuation of the V29.4 family. The bot structure stays unchanged, but the optimizer retuned a focused TOMATOES parameter layer across both day `-2` and day `-1`, with an inventory robustness penalty to reduce overfitting. The promoted bot is the saved best candidate from the real multi-day search.
+Notes: Strong local result and a successful use of meta-optimization on top of the existing architecture. The promoted Phase 1 winner reproduced 14'734 on day `-1`, with EMERALDS at 7'691 and TOMATOES at 7'043 over 671 trades. In the optimizer objective, it also improved the two-day combined total from 28'958.5 to 29'048.5 and TOMATOES combined from 14'067.5 to 14'189.5 while slightly lowering average TOMATOES inventory. This is the cleanest proof so far that tuning the existing strong family is higher ROI than large structural rewrites.
+PnL: Official N/A | Rust 14'734
+
+V29.8:
+Works: Yes
+Improvement: Phase 2 CMA-ES tuned continuation seeded from the V29.7 winner. Keeps the same V29.4 family structure and Phase 1 core knobs, then adds a second layer of continuous TOMATOES controls such as trend fair bonus and trend take / hold parameters. The optimizer was warm-started from the saved Phase 1 best state instead of restarting from the raw baseline.
+Notes: Small but real follow-up improvement. The promoted Phase 2 winner reproduced 14'769 on day `-1`, with EMERALDS at 7'723 and TOMATOES at 7'046 over 673 trades. In the multi-day objective it improved again from 31'856.8 to 31'897.8, with combined total rising from 29'048.5 to 29'088.5 and combined TOMATOES from 14'189.5 to 14'197.5 while holding average TOMATOES inventory roughly flat. So Phase 2 added only a modest gain, but it successfully improved on the Phase 1 winner rather than overfitting away from it.
+PnL: Official N/A | Rust 14'769
+
+V29.9:
+Works: Yes
+Improvement: Narrow TOMATOES alpha continuation on top of the V29.8 winner. Keeps the full tuned V29.8 control stack, reservation logic, and taker flow intact, and adds only a hybrid fair-value alpha layer: rolling reference + mid + microprice + a small imbalance-flow term. That hybrid alpha is blended with the existing regression edge and then fed into fair value as an additive directional signal, while inventory skew remains fully separate in the reservation / risk layer.
+Notes: Real local improvement. Rust PnL reached 14'820 with EMERALDS unchanged at 7'723 and TOMATOES improving from 7'046 to 7'097 over 713 trades. So the hybrid alpha idea appears additive in the top family: it increased TOMATOES edge without breaking the existing control structure, and it is currently the best local Rust result in the repo.
+PnL: Official N/A | Rust 14'820
+
 V31:
 Works: Yes
 Improvement: Full architecture reset built from the simple `Trader.py` structure, keeping only selective `v29.4` ideas. EMERALDS stays as a lighter anchored mean-reversion market maker, while TOMATOES moves to a cleaner microstructure engine with multi-level imbalance, order-flow imbalance, online RLS alpha, maker/taker separation, queue-aware passive EV, post-fill adverse-selection bias, and book sweeping.
@@ -572,8 +608,261 @@ Improvement: Narrow continuation of V36 that keeps the taker-first flow in norma
 Notes: Directionally cleaner than the full V37 action-selection rewrite, but still too restrictive in this first calibration. Rust PnL reached 13'924 with EMERALDS unchanged at 7'717 and TOMATOES at 6'207 over 668 trades. So using EV as a selective taker veto is a better idea than replacing the whole action flow, but the current thresholds are still blocking too many profitable TOMATOES entries.
 PnL: Official N/A | Rust 13'924
 
+
+V36 Focused Sweep:
+Works: Yes
+Improvement: First dedicated local sweep around the V36 TOMATOES calibration layer instead of hand-tuning one continuation at a time. The search stayed close to the new architecture and only moved the main V36 levers: quote edge, take edge, alpha mix, passive bucket weights, taker markout weight, target bucket weight, toxic quote width, and soft-limit shaping.
+Notes: This sweep found a real improvement region. Baseline V36 at 14'120 improved to a best local result of 14'365, driven entirely by TOMATOES rising from 6'403 to 6'648 while EMERALDS stayed fixed at 7'717. The strongest pattern was: slightly tighter base quote edge, lighter reversion alpha, lower passive bucket edge weight, stronger taker markout weighting, smaller target bucket influence, stronger trend soft-limit bonus, lighter toxic soft-limit penalty, and lower toxic spread widening. Outputs live in `Analysis/output/v36_sweep_report.txt` and `Analysis/output/v36_sweep_results.csv`.
+PnL: Best Rust 14'365 | Baseline 14'120
+
+V36.2:
+Works: Yes
+Improvement: Clean promotion of the best V36 sweep result. Keeps the full V36 architecture unchanged and only applies the winning TOMATOES calibration from the focused local sweep.
+Notes: Strong local improvement. Rust PnL reached 14'365 with EMERALDS unchanged at 7'717 and TOMATOES improving to 6'648 over 695 trades. This is the best result so far within the cleaner post-V34 architecture and confirms that the V36 structure had more headroom than the first hand-tuned version showed.
+PnL: Official N/A | Rust 14'365
+
 V37:
 Works: Yes
 Improvement: Adds maker-versus-taker action selection by expected value each tick. Instead of always running the aggressive sweep first, TOMATOES now computes preliminary passive EV, estimates aggressive EV from the same state, and only takes liquidity when the taker opportunity clearly beats the passive alternative by a margin.
 Notes: Useful result, but not an improvement. Rust PnL reached 14'044 with EMERALDS unchanged at 7'717 and TOMATOES at 6'327 over 670 trades. So the EV-selection idea is directionally sensible, but in this first calibration it made TOMATOES a bit too selective and gave back part of the V36 gain. The likely takeaway is that the taker gate needs softer margins or asymmetric use rather than a uniform all-sides filter.
 PnL: Official N/A | Rust 14'044
+
+V37 (V29.4 Hybrid):
+Works: Yes
+Improvement: TOMATOES-only continuation built from the strong V29.4 family rather than the newer reset architecture. Keeps the old alpha stack, fair-value construction, and taker logic intact, then adds three selective upgrades: richer multi-level flow features, delayed passive-fill markout memory with adverse-selection bias, and passive/taker vetoes that only activate in toxic or stretched states.
+Notes: Respectable, but still below the V29.4 peak. Rust PnL reached 14'246 with EMERALDS unchanged at 7'403 and TOMATOES at 6'843 over 706 trades. The branch improved TOMATOES entry quality slightly and stayed much safer than the full A-S rewrites, but it still traded less flow than V29.4 and gave back too much TOMATOES edge to become the new leader.
+PnL: Official N/A | Rust 14'246
+
+V38:
+Works: Yes
+Improvement: Physic try. Experimental branch built around a more physics-inspired framing rather than the stronger tuned V29.4/CMA-ES family, while still keeping the Prosperity-compatible two-product structure.
+Notes: Runnable, but far below the top family. Rust PnL reached 11'177 with EMERALDS at 7'435 and TOMATOES at 3'742 over 662 trades. So this physics-style attempt did not compete with the 14k+ family and, in practice, mostly underperformed because TOMATOES gave up too much edge.
+PnL: Official N/A | Rust 11'177
+
+55717:
+Works: Yes
+Improvement: External benchmark bot that became the TOMATOES base for the later hybrid experiments. Structurally it is still very close to the V29-family architecture, but with a much more aggressive TOMATOES calibration: very low inventory skew, shorter regression horizon, lower take edge, much wider max quote edge, stronger quote-width dependence on inventory and time, and a much higher regression alpha scale.
+Notes: Extremely strong TOMATOES engine locally. Rust PnL reached 15'252 with EMERALDS at 7'403 and TOMATOES at 7'849 over 749 trades. Compared with the V29 family it wins overwhelmingly through TOMATOES, even though its EMERALDS side is weaker than the stronger local 7'723 profile. This bot is important mainly because it proved the best local TOMATOES behavior before the hybrid line overtook it on total PnL.
+PnL: Official N/A | Rust 15'252
+
+V39:
+Works: Yes
+Improvement: Hybrid of the top families. Uses the external `55717` TOMATOES control and execution calibration as the base, restores the stronger local EMERALDS settings from the V29.8/V29.9 line, and adds a light version of the V29.9 hybrid fair-value alpha for TOMATOES: rolling reference + mid + microprice + small imbalance-flow adjustment. The hybrid alpha is blended conservatively into the existing regression edge instead of replacing the execution logic.
+Notes: Best local result so far in our own branching history. Rust PnL reached 15'339 with EMERALDS at 7'723 and TOMATOES at 7'616 over 737 trades. Compared with `55717`, it gave up some TOMATOES peak (`7'849 -> 7'616`) but recovered much stronger EMERALDS (`7'403 -> 7'723`), which lifted total PnL from 15'252 to 15'339. Compared with V29.9, it kept the stronger EMERALDS profile and gained a large TOMATOES step up (`7'097 -> 7'616`). So the first real hybrid worked.
+PnL: Official N/A | Rust 15'339
+
+V39 Focused Sweep:
+Works: Yes
+Improvement: First dedicated local sweep around the hybrid-specific V39 TOMATOES levers rather than the whole control stack. The search only moved the new hybrid layer and closely related execution knobs: `BASE_TAKE_EDGE`, `BASE_QUOTE_EDGE`, `ALPHA_EDGE_SCALE`, `RANGE_RESERVATION_BIAS`, `ALPHA_BLEND_WEIGHT`, and `FAIR_ALPHA_WEIGHT`.
+Notes: This sweep found a much stronger local region. Baseline V39 at 15'339 improved to a best local result of 15'931, entirely through TOMATOES rising from 7'616 to 8'208 while EMERALDS stayed fixed at 7'723. The winning direction was more hybrid-alpha influence and slightly tighter / more aggressive execution: `BASE_TAKE_EDGE` `0.80 -> 0.78`, `BASE_QUOTE_EDGE` `2.75 -> 2.68`, `ALPHA_BLEND_WEIGHT` `0.22 -> 0.28`, and `FAIR_ALPHA_WEIGHT` `0.35 -> 0.42`. Outputs live in `Analysis/output/v39_sweep_report.txt`, `Analysis/output/v39_sweep_results.csv`, and `Analysis/output/v39_sweep_best.json`.
+PnL: Best Rust 15'931 | Baseline 15'339
+
+V39.1:
+Works: Yes
+Improvement: Clean promotion of the winning V39 sweep result. Keeps the same hybrid structure as V39 and only applies the sweep-winning TOMATOES calibration.
+Notes: New best local bot in the repo. Rust PnL reached 15'931 with EMERALDS at 7'723 and TOMATOES at 8'208 over 742 trades. This confirms the hybrid still had substantial headroom once the new alpha layer was allowed to contribute more directly and the TOMATOES quoting / taking was made a bit tighter.
+PnL: Official N/A | Rust 15'931
+
+V39.2:
+Works: Yes
+Improvement: Official-stability continuation of V39.1 aimed specifically at the large mid-session TOMATOES drawdown seen in the official replay around timestamp `85k`. The change is narrow: the hybrid alpha is now damped in range states, damped when it conflicts with the regression edge / imbalance / momentum, and tapered away when current inventory is already large on the same side.
+Notes: Lower local peak, but materially better official transfer. Rust PnL reached 15'486 with EMERALDS unchanged at 7'723 and TOMATOES at 7'763 over 684 trades. Officially it reached 2'624.171875 with EMERALDS at 1'050.0 and TOMATOES at 1'574.171875, beating both V29.4 and the external highscore v2 log. So V39.2 is exactly the kind of branch we wanted: it gives back some local peak in exchange for much better official path quality and avoids the `85k` TOMATOES drawdown that hurt V39.1.
+PnL: Official 2'624.171875 | Rust 15'486
+
+V39.3:
+Works: Yes
+Improvement: First fair-proxy continuation based on the public-research “wall mid” insight. Keeps the `V39.2` execution and risk shell intact, but adds a light size-filtered TOMATOES fair component built from the largest top-of-book levels on both sides. The wall-derived local fair is blended conservatively into both the hybrid alpha reference and the main fair value, with lower influence in trend states than in range states.
+Notes: This is a small but real improvement on the `V39.2` local line without changing the core behavior profile, but it did not transfer well officially. Rust PnL reached 15'521 with EMERALDS unchanged at 7'723 and TOMATOES improving to 7'798 over 697 trades. Officially, however, it fell to 2'522.734375 with EMERALDS still at 1'050.0 and TOMATOES at 1'472.734375. The issue was not EMERALDS at all; TOMATOES simply became too active and too expensive, with much larger buy/sell participation than `V39.2` but materially worse execution quality on both sides. So the wall-mid idea looked promising, but this first non-persistent version was too twitchy and hurt transfer.
+PnL: Official 2'522.734375 | Rust 15'521
+
+V39.4:
+Works: Yes
+Improvement: Persistence continuation of the `V39.3` wall-mid idea. Instead of using only the current book snapshot, TOMATOES now keeps a compact EWMA of the wall-derived local fair and its strength in `traderData`, then uses that persistent wall fair as the light fair-proxy overlay. The execution shell from `V39.2` remains unchanged.
+Notes: This improved the fair-proxy branch again, and this time it also transferred officially. Rust PnL reached 15'573 with EMERALDS unchanged at 7'723 and TOMATOES improving to 7'850 over 688 trades. Officially it reached 2'640.875 with EMERALDS still at 1'050.0 and TOMATOES at 1'590.875, which is a new top official score in our current line and beats `V39.2` by about 16.7. The trade profile is exactly what we wanted versus `V39.3`: it kept more TOMATOES participation than `V39.2`, but with much better buy/sell prices than the non-persistent wall-mid version. So the stronger version of the insight is not just “look at the current large quotes,” but “track a persistent large-quote fair across ticks.”
+PnL: Official 2'640.875 | Rust 15'573
+
+V39.5 Wall-Fair Follow-ups:
+Works: Yes
+Improvement: Narrow refinement pass on top of `V39.4` to test whether the persistent wall-fair idea could be made even cleaner. The follow-ups explored three directions: an agreement-gated wall fair that downweighted the signal when it conflicted with imbalance or momentum, a stripped version that removed wall influence from hybrid alpha and kept it only in the main fair value, and a slightly stronger fair-only wall weight.
+Notes: No follow-up beat `V39.4`, and the official logs made that conclusion even clearer. Locally, the agreement-gated version was too strict and fell to Rust 15'444, the fair-only version tied `V39.4` exactly at Rust 15'573, and the stronger fair-only weight weakened the branch to Rust 15'519. Officially, both tested follow-ups (`V39.5.1` and `V39.5.2`) came back exactly identical to `V39.4`: total 2'640.875 with EMERALDS at 1'050.0 and TOMATOES at 1'590.875, including the same TOMATOES trade counts, average buy/sell prices, and checkpoint path. So the current best read is that `V39.4` is already close to the right calibration: persistent wall fair helps, but the extra filtering and reweighting tried so far do not add incremental edge.
+PnL: Official Follow-ups = 2'640.875 | Best Follow-up Rust 15'573 | Baseline Rust 15'573
+
+V39.4 Wall-Fair Sweep:
+Works: Yes
+Improvement: Focused local sweep only on the persistent wall-fair block. The search tuned `WALL_ALPHA_WEIGHT`, `WALL_FAIR_WEIGHT`, `WALL_EWMA_ALPHA`, and `WALL_PERSISTENCE_FLOOR` while keeping the rest of the `V39.4` structure fixed.
+Notes: This sweep found a real improvement region. Baseline `V39.4` at Rust 15'573 improved to a best local result of 15'764, entirely through TOMATOES rising from 7'850 to 8'041 while EMERALDS stayed fixed at 7'723. The clearest pattern was: wall fair should matter more in the main fair than in hybrid alpha, and the persistent wall signal should be allowed to activate earlier. The strongest region used `WALL_FAIR_WEIGHT = 0.20`, `WALL_EWMA_ALPHA = 0.22`, and `WALL_PERSISTENCE_FLOOR = 0.25`, while `WALL_ALPHA_WEIGHT` barely mattered in the top cluster. Outputs live in `Analysis/output/v39_4_wall_sweep_report.txt`, `Analysis/output/v39_4_wall_sweep_results.csv`, and `Analysis/output/v39_4_wall_sweep_best.json`.
+PnL: Best Rust 15'764 | Baseline Rust 15'573
+
+V39.6:
+Works: Yes
+Improvement: Promotion of the cleanest winning configuration from the focused `V39.4` wall-fair sweep. Keeps the persistent wall-fair architecture intact, but applies the sweep-winning calibration: no wall influence in hybrid alpha, a stronger wall contribution in the main fair, and a lower persistence floor so the signal engages earlier.
+Notes: The local sweep win did not transfer. Rust PnL reached 15'764 with EMERALDS unchanged at 7'723 and TOMATOES improving to 8'041 over 693 trades, but the official replay fell to 2'544.164 with EMERALDS still at 1'050.0 and TOMATOES at 1'494.164. Relative to `V39.4` at 2'640.875 / 1'590.875, the stronger wall-fair calibration over-activated TOMATOES and traded more at worse prices: buy quantity rose from 151 to 159 with average buy worsening from 4'985.523 to 4'985.585, and sell quantity rose from 125 to 136 with average sell dropping from 4'995.952 to 4'994.713. The underperformance showed up throughout the day rather than from one collapse, with TOMATOES trailing at 50k, 85k, 100k, and especially by 150k. So the sweep confirmed the signal is useful, but `V39.4` remains the better official calibration.
+PnL: Official 2'544.164 | Rust 15'764
+
+55717 Overall CMA-ES:
+Works: Yes
+Improvement: First broad block-based CMA-ES search on the external `55717` bot with structure fixed. The search tuned both EMERALDS and TOMATOES continuous parameters in one controlled pass, including reference/mid weights and skew on EMERALDS plus the main quote, reservation, regression, and inventory controls on TOMATOES.
+Notes: No improvement over baseline. Across days `-2` and `-1`, the baseline stayed best with objective `33'468.486`, total PnL `30'481.5`, TOMATOES `16'006.5`, and average TOMATOES inventory `11.783`. So `55717` appears to already sit in a strong local optimum for this parameter block under the current robustness objective. Outputs live in `Analysis/output/55717_cmaes/report.txt`, `Analysis/output/55717_cmaes/results.csv`, and `Analysis/output/55717_cmaes/best_state.json`.
+PnL: Multi-day Objective 33'468.486 | Best Candidate = Baseline
+
+V39.2 Overall CMA-ES:
+Works: Yes
+Improvement: First broad block-based CMA-ES search on the official-stability hybrid `V39.2`, again keeping structure fixed and tuning only numeric blocks. The search covered both EMERALDS and TOMATOES levers, with extra focus on the guarded hybrid-alpha damping and execution controls that made `V39.2` transfer well officially.
+Notes: No improvement over baseline, but the result is still important: across days `-2` and `-1`, `V39.2` baseline stayed best with objective `33'979.046`, total PnL `30'950.0`, TOMATOES `16'059.0`, and average TOMATOES inventory `12.751`. That objective beat the `55717` CMA-ES run, so the stronger overall search output remained the original `V39.2` parameter set. Outputs live in `Analysis/output/v39_2_cmaes/report.txt`, `Analysis/output/v39_2_cmaes/results.csv`, and `Analysis/output/v39_2_cmaes/best_state.json`.
+PnL: Multi-day Objective 33'979.046 | Best Candidate = Baseline
+
+V40:
+Works: Yes
+Improvement: Promotion of the stronger output from the two overall block-based CMA-ES searches. Since both searches converged back to their baselines, `V40` uses the `V39.2` CMA-ES best output, which beat the `55717` CMA-ES search on the multi-day objective while preserving the official-stability hybrid shape.
+Notes: This is a validation-and-promotion version rather than a new parameter breakthrough. Rust PnL matched `V39.2` at 15'486 with EMERALDS at 7'723 and TOMATOES at 7'763 over 684 trades. The real value of `V40` is that it represents the stronger of the two full-block CMA-ES outputs in one clean bot artifact: `55717` overall search objective `33'468.486` versus `V39.2` overall search objective `33'979.046`.
+PnL: Official N/A | Rust 15'486
+
+V40.1:
+Works: Yes
+Improvement: Narrow continuation patch on top of `V40` to selectively restore a bit of `55717`-style trend participation without losing the guarded `V39.2` safety shell. The change only activates in low-toxicity aligned-trend states where regression edge, hybrid alpha, imbalance, and momentum all point the same way; in those cases it allows a slightly less-damped hybrid alpha, a slightly larger trend target, and a slightly looser trend-side taker edge.
+Notes: Stable, but neutral on the local replay. Rust PnL matched `V40` exactly at 15'486 with EMERALDS at 7'723 and TOMATOES at 7'763 over 684 trades. That means the idea is structurally safe, but on day `-1` it either fired too rarely or was too small to move the outcome. The patch is still useful because it gives us a controlled way to test “more aligned-trend participation” without resorting to replay-specific timestamp logic.
+PnL: Official N/A | Rust 15'486
+
+V40.2:
+Works: Yes
+Improvement: First true state-style hybrid on top of `V40`. Calm / normal TOMATOES states keep the guarded `V39.2` style, while fast / imbalanced / trending states selectively lean toward `55717`-style behavior. The bot adds lightweight fill-quality feedback in `traderData`, uses recent fill markout to scale aggression, adjusts quote width and alpha mix by market state, and makes both order size and quote distance explicitly inventory-aware.
+Notes: Interesting direction, but too defensive overall. Rust PnL fell to 15'372 with EMERALDS unchanged at 7'723 and TOMATOES at 7'649 over 680 trades. Officially it reached 2'576.03125 with EMERALDS at 1'050.0 and TOMATOES at 1'526.03125. That is below `V39.2`, even though the late-session curve was still decent. The likely issue is that the fast-state branch widened or backed off too much early and mid-session before the new fill-feedback layer had enough time to help, so the bot gave up too much TOMATOES participation.
+PnL: Official 2'576.03125 | Rust 15'372
+
+V40.3:
+Works: Yes
+Improvement: Narrow calibration pass on top of `V40.2`. Keeps the new fill-feedback memory and state-switching framework, but makes the fast-state branch less defensive and the calm-state join behavior more active. Concretely, it reduces fast quote widening and inventory pressure, strengthens calm joining, softens adverse-selection penalties, and slightly increases trend-side take encouragement.
+Notes: Better than `V40.2`, but still below the `V40` / `V39.2` baseline. Rust PnL improved to 15'432 with EMERALDS unchanged at 7'723 and TOMATOES at 7'709 over 688 trades. Officially it reached 2'587.59375 with EMERALDS at 1'050.0 and TOMATOES at 1'537.59375. So the tuning did help relative to `V40.2`, and it also improved the late official curve versus `V40.2`, but it still remained behind `V39.2` and the external `55717` benchmark. The main positive is that the fill-feedback framework now looks more usable for future tuning rather than immediately over-dampening the bot.
+PnL: Official 2'587.59375 | Rust 15'432
+
+V40 State-Layer Sweep:
+Works: Yes
+Improvement: Focused local sweep only on the new memory/state-layer coefficients rather than the full TOMATOES engine. The search tuned the calm-join strength, calm/fast quote multipliers, fast-state take bonus and target bonus, inventory-pressure scaling, and the good-fill / bad-fill feedback penalties.
+Notes: The sweep found a viable light-touch region, but not a new high. Baseline `V40.3` at 15'432 improved back up to 15'486, entirely through TOMATOES recovering from 7'709 to 7'763 while EMERALDS stayed fixed at 7'723. The winning direction was to make the layer lighter: weaker calm joining, slightly less tight calm quotes, smaller good-fill boost, lower bad-fill quote penalty, and a larger fast-target bonus with only a modest fast take bonus. Outputs live in `Analysis/output/v40_state_sweep_report.txt`, `Analysis/output/v40_state_sweep_results.csv`, and `Analysis/output/v40_state_sweep_best.json`.
+PnL: Best Rust 15'486 | Baseline 15'432
+
+V40.4:
+Works: Yes
+Improvement: Clean promotion of the best light-touch state-layer sweep result. Keeps the `V40.2` / `V40.3` memory and fill-feedback framework, but uses the gentler sweep-winning settings so the added state logic acts as a small overlay rather than a heavier style switch.
+Notes: This version recovers the full `V40` / `V39.2` local level while keeping the new memory/state components alive for future work. Rust PnL reached 15'486 with EMERALDS at 7'723 and TOMATOES at 7'763 over 682 trades. So the sweep confirms that the state layer can be made non-destructive, but in this form it still ties the guarded hybrid rather than beating it.
+PnL: Official N/A | Rust 15'486
+
+V40.5:
+Works: Yes
+Improvement: Control-architecture simplification pass inspired by the market-making / inventory-control papers. Keeps the strong `V40.4` backbone, but rewrites TOMATOES around a smaller set of higher-level controls: one explicit reservation-price inventory term, one smooth size-pressure function, persistent filtered trend/toxic state, a finite-state execution ladder (`range`, `trend`, `strong trend`, `volatile`, `flatten`), and more explicit one-sided quoting under strong alpha.
+Notes: Architecturally much cleaner, but too conservative in this first form. Rust PnL reached 13'194 with EMERALDS unchanged at 7'723 and TOMATOES falling to 5'471 over 627 trades. The simplification itself worked technically and removed a large amount of overlapping TOMATOES logic, but the first calibration gave up too much profitable participation. So `V40.5` is useful mainly as an R&D branch and proof that the control rewrite is viable; it is not yet a promotion candidate over `V40.4`.
+PnL: Official N/A | Rust 13'194
+
+V40.5.1:
+Works: Yes
+Improvement: Recovery continuation on top of `V40.5` that reapplies a light derived state/memory overlay without bringing back the old large bonus-grid parameter set. The overlay is calculation-driven: calm range states can join a tick more aggressively, fast aligned trend states get a small target/take/size relief, and recent fill quality or adverse selection widens or tightens participation automatically.
+Notes: Did not improve the simplified branch. Rust PnL fell slightly to 13'090 with EMERALDS unchanged at 7'723 and TOMATOES at 5'367 over 627 trades. So the extra light overlay did not rescue the simplified architecture; the main problem is still that the `V40.5` core is too conservative and under-participates in TOMATOES. This keeps the idea documented, but it is still clearly below the `V40.4` / `V39.2` family.
+PnL: Official N/A | Rust 13'090
+
+V40.5.2:
+Works: Yes
+Improvement: More aggressive simplification continuation on top of `V40.5`. The TOMATOES core was simplified further by removing the extra `strong trend` state layer, lowering take and quote barriers, weakening reservation skew and size-pressure drag, delaying flatten pressure, and letting both range and trend execution take slightly more size when the edge is present.
+Notes: More aggressive than `V40.5`, but still not enough to recover the top family. Rust PnL reached 13'012 with EMERALDS unchanged at 7'723 and TOMATOES at 5'289 over 630 trades. This suggests the simplified core is not just “too defensive”; it is still missing some of the stronger pricing/execution machinery from `V40.4`, even when the aggressiveness is increased. So `V40.5.2` is a useful calibration point, but it remains an R&D branch rather than a promotion path.
+PnL: Official N/A | Rust 13'012
+
+V40.6:
+Works: Yes
+Improvement: Core-preserving hybrid improvement inspired by the clean regime bot, but applied on top of the strong `V40.4` family instead of the weaker full simplification branch. Adds persistent filtered TOMATOES state (`ewma_mid`, return / volatility filters, smoothed micro-gap and imbalance, plus a continuous regime score), then uses that state to drive a simpler execution mode ladder (`lean`, `strong`, `defensive`) without replacing the stronger existing fair-value and execution machinery. The result is more explicit one-sided participation and cleaner trend-vs-defensive switching while keeping the proven pricing core.
+Notes: This was the first regime-cleanup branch that actually improved the top local family instead of weakening it. Rust PnL reached 15'781 with EMERALDS unchanged at 7'723 and TOMATOES improving to 8'058 over 692 trades. Officially, though, it did not transfer as well: `V40.6` finished at 2'568.453 with EMERALDS still perfect at 1'050 and TOMATOES at 1'518.453. That left it below `V39.2` and also below `V40.3`, mainly because it lagged early and mid-session rather than because of one catastrophic late drawdown. So the persistent-state idea was useful locally, but the first calibration still made TOMATOES a bit too expensive or too selective in the official path.
+PnL: Official 2'568.453 | Rust 15'781
+
+V40.7:
+Works: Yes
+Improvement: Phase 1 CMA-ES tuning pass on top of `V40.6` with the structure kept fixed. The search only tuned a focused set of continuous TOMATOES controls: `BASE_TAKE_EDGE`, `BASE_QUOTE_EDGE`, `SOFT_LIMIT_RATIO`, `ALPHA_EDGE_SCALE`, `ALPHA_BLEND_WEIGHT`, `FAIR_ALPHA_WEIGHT`, `RANGE_ALPHA_DAMP`, `CONFLICT_ALPHA_DAMP`, `POSITION_ALPHA_DAMP_START`, `POSITION_ALPHA_DAMP_END`, `REGIME_EWMA_ALPHA`, `LEAN_SCORE`, `STRONG_SCORE`, and `DEFENSIVE_VOL_THRESHOLD`.
+Notes: This was a real upgrade in the local Rust backtester, but it did not transfer to the official replay. The best Phase 1 CMA-ES candidate improved the multi-day local objective from 34'299.143 to 34'849.989 across days `-2` and `-1`, with total PnL rising from 31'267 to 31'749 and TOMATOES from 16'376 to 16'858 while slightly lowering average TOMATOES inventory. Promoted as `V40.7`, it also improved the direct day `-1` local result to 15'825 with EMERALDS unchanged at 7'723 and TOMATOES up to 8'102 over 692 trades. Officially, however, `V40.7` finished at 2'587.594 with EMERALDS at 1'050 and TOMATOES at 1'537.594, which is effectively identical to `V40.3` and still below `V39.2`. That makes this a good example of local overfitting risk: the focused CMA-ES pass found a better local calibration, but not a better official calibration.
+PnL: Official 2'587.594 | Rust 15'825
+
+V40.9:
+Works: Yes
+Improvement: First implementation of the “subtract trends” idea using a filtered TOMATOES `trend_fair` plus a detrended residual. The residual was then used across several layers at once: regime gating, hybrid-alpha damping, range fair-value reversion, trend-side take braking, and a small passive-quote brake in overstretched trend states.
+Notes: Clean idea, but too broad in this first form. Rust PnL fell to 15'419 with EMERALDS unchanged at 7'723 and TOMATOES at 7'696 over 696 trades. The main lesson is that the detrended residual does seem directionally meaningful, but spreading it across fair value, regime classification, and passive placement made the bot too brake-heavy and gave up too much TOMATOES participation. So the residual looks better as a narrow execution control than as a general pricing layer.
+PnL: Official N/A | Rust 15'419
+
+V40.9.2:
+Works: Yes
+Improvement: Narrowed continuation of `V40.9`. Keeps the filtered `trend_fair` and residual state in memory, but removes the residual from hybrid-alpha damping, trend/range regime gating, range fair-value construction, and passive quote placement. The residual is now used only as a direct anti-chase control on the taker side, including a small explicit veto when the bot is already loaded and the current trend move is clearly overstretched.
+Notes: This is the right way to use the idea. Rust PnL recovered fully to 15'825 with EMERALDS at 7'723 and TOMATOES at 8'102 over 692 trades, tying the `V40.7` local peak. Officially it reached 2'588 with EMERALDS still at 1'050 and TOMATOES at 1'538, which puts it fractionally above the `V40.7` / `V40.3` line and very close to the stronger official hybrids. So the residual feature did not create a new local high, but it also did not hurt once it was reduced to a pure execution-layer brake. That makes `V40.9.2` a useful structural result: “subtract trends” can help as a very small control overlay, but not as a broad replacement for the stronger pricing core.
+PnL: Official 2'588 | Rust 15'825
+
+Clean Regime Bot:
+Works: Yes
+Improvement: Standalone clean-regime reference bot focused on explicit persistent state, simpler regime switching, and a more stripped-down TOMATOES control architecture. It is useful mainly as a structural comparison point because it shows what a cleaner regime-first design can do without the heavier hybrid calibration stack from the top family.
+Notes: Solid but clearly below the current top hybrid line. Rust PnL reached 14'809 with EMERALDS at 7'549 and TOMATOES at 7'260 over 614 trades. That means it beats many older experimental branches, but still trails `V40.6` by a wide margin, especially on TOMATOES. Its main value is as a donor of clean persistent-state ideas rather than as a replacement for the stronger pricing/execution core.
+PnL: Official 2404 | Rust 14'809
+
+V50:
+Works: Yes
+Improvement: Fresh clean-slate bot built from scratch around the reusable patterns extracted from public Prosperity writeups rather than by patching the old family. The architecture is intentionally explicit: raw book parsing -> reusable feature/state layer -> memory -> regime -> fair value -> target position -> reservation price -> execution -> final orders. EMERALDS uses a stable-product fixed-fair market maker with zero-edge clearing and inside-spread quoting; TOMATOES uses a persistent wall-fair / large-quote estimator, a small rolling state store, a simple regime classifier, one main reservation-price inventory control, and explicit one-sided execution in directional states.
+Notes: This is a foundation bot, not yet a top-score challenger, but it is already viable. After one grounded EMERALDS quoting fix, Rust PnL reached 12'181 with EMERALDS at 7'717 and TOMATOES at 4'464 over 828 trades. Officially it transferred to 1'989.4375 with EMERALDS still perfect at 1'050.0 and TOMATOES at 939.4375. That confirms the architecture is sound, but also that the clean first-cut TOMATOES engine is much too slow and too polite compared with the stronger official family: it traded a lot, but at weak prices and with too little directional edge capture. So `V50` is a real clean baseline, but not yet close to `V39.4`'s 2'640.875 / 1'590.875 line.
+PnL: Official 1'989.4375 | Rust 12'181
+
+V50.1:
+Works: Yes
+Improvement: First reaction-speed and execution-feedback patch on top of `V50`. TOMATOES now uses a faster `fast_fair - slow_fair` trend signal, lower regime thresholds, less eager trend-aligned inventory clearing, explicit reversal-cover behavior when caught on the wrong side of a move, and a lightweight fill-feedback memory that tracks recent own-trade markouts and adverse selection.
+Notes: Structurally coherent, but weaker in the first pass. Rust PnL fell to 11'487 with EMERALDS unchanged at 7'717 and TOMATOES dropping to 3'770 over 698 trades. So the diagnosis behind the patch was reasonable, but this implementation over-corrected: TOMATOES became less active overall and the new feedback / reversal logic likely widened or vetoed too much before the simplified engine had enough alpha quality to earn it back. The clean takeaway is that `V50` still needs faster TOMATOES state and stronger execution, but those controls need to be added more selectively rather than all at once.
+PnL: Official N/A | Rust 11'487
+
+V50 Narrow Variant Sweep:
+Works: Yes
+Improvement: Controlled follow-up experiment around the clean `V50` baseline, splitting the broad `V50.1` patch into narrower TOMATOES-only variants to isolate which ideas actually helped. The tested variants were: `V50.2` faster trend signal plus lower thresholds only, `V50.3` that same state upgrade plus strict strong-trend reversal cover, `V50.4` the same state upgrade plus selective strong-trend inventory holding, `V50.5` a more aggressive combined version, `V50.6` mild threshold loosening on top of the original `V50` state, `V50.7` that same mild threshold loosen plus strict reversal cover, `V50.8` that same mild threshold loosen plus selective strong-trend holding, and `V50.9` a tighter trend-side execution version on top of the original state.
+Notes: The results were surprisingly clean. `V50.2`, `V50.3`, and `V50.4` all landed identically at Rust 11'459 with EMERALDS unchanged at 7'717 and TOMATOES at 3'742, which means the faster `fast_fair - slow_fair` state change was the thing that hurt while the added strict reversal and hold logic were effectively inert at that strength. The more aggressive combined branch `V50.5` was clearly worst at Rust 11'051 / TOMATOES 3'334. The second pass around the original `V50` state was much healthier: `V50.6`, `V50.7`, and `V50.8` all tied at Rust 12'068 / TOMATOES 4'351, showing that mild threshold loosening helps a bit while the narrow reversal / hold tweaks again do almost nothing. The most targeted trend-execution variant, `V50.9`, nearly matched the original baseline at Rust 12'153 / TOMATOES 4'436, but still did not beat `V50` at 12'181 / 4'464. So the clear conclusion is: the clean `V50` line should stay closer to its original state and execution structure; faster state, reversal cover, and selective strong-trend holding are not the missing edge yet. The next likely gain on this clean family is better fair estimation or quote calibration, not more gating logic.
+PnL: Best Rust 12'181 (`V50`) | Best Variant Rust 12'153 (`V50.9`)
+
+V50 Pricing Calibration Sweep:
+Works: Yes
+Improvement: Narrow fair-model and execution-calibration sweep around the original `V50` state core, explicitly avoiding more regime or gating changes. The tested variants were: `V50.10` a tiny TOMATOES fair-value rebalance toward microprice, `V50.11` a stronger wall-fair anchor, `V50.12` globally tighter quote/take edges, `V50.13` slightly larger passive size with a neutral-inventory bump, and `V50.14` a combined light-touch version of the fair, edge, and size changes.
+Notes: This sweep was much more informative than the earlier state experiments. `V50.10` was the clear winner at Rust 12'231 with EMERALDS unchanged at 7'717 and TOMATOES improving to 4'514 over 819 trades, which means the clean `V50` architecture did have edge left in pricing quality after all. `V50.11` was respectable but weaker at Rust 12'160 / TOMATOES 4'443, so pushing harder into wall-fair did not help as much as simply giving microprice a bit more weight. `V50.13` nearly tied the best old variants at Rust 12'155 / TOMATOES 4'438, which suggests size was not the main bottleneck but also was not harmful when added mildly. By contrast, `V50.12` and the combined `V50.14` both lost clearly at Rust 11'956 / TOMATOES 4'239 and Rust 11'987 / TOMATOES 4'270, so broad quote/take tightening still seems to give up too much bread-and-butter spread capture on this clean line. The practical takeaway is strong: on the `V50` family, fair estimation matters more than new gating logic, and the best next path is to refine the fair model in small steps rather than to make the bot globally more aggressive.
+PnL: Best Rust 12'231 (`V50.10`) | Best Other Rust 12'160 (`V50.11`)
+
+V50.10:
+Works: Yes
+Improvement: First successful pricing-calibration winner on the clean `V50` family. TOMATOES keeps the same state spine, regime logic, inventory control, and execution rules as `V50`, but the fair-value blend is nudged slightly away from the slow wall anchor and toward the current microprice. Specifically, wall-fair weight falls from 0.58 to 0.55, mid weight from 0.17 to 0.15, and microprice weight rises from 0.15 to 0.20 while the flow term stays unchanged.
+Notes: This is the first `V50` follow-up that actually beats the baseline instead of just rearranging the same edge. Rust PnL rose to 12'231 with EMERALDS unchanged at 7'717 and TOMATOES up to 4'514 over 819 trades, beating `V50`'s 12'181 / 4'464. The result is modest rather than dramatic, but it is strategically important because it validates the conclusion from the earlier sweep: the clean `V50` line does not mainly need more gating, reversal logic, or state complexity. It needs slightly better TOMATOES pricing quality. `V50.10` is therefore the right promotion candidate from the clean-slate family so far.
+PnL: Official N/A | Rust 12'231
+
+V50.10x Overshoot Follow-up:
+Works: Yes
+Improvement: Correctness and local-calibration follow-up around `V50.10`, focused on fixing the target-overshoot bug and then testing only tiny nearby fair/quote changes. The shared correction was to remove the old `max(1, ...)` sizing floor in trend-side taker and passive logic and replace it with proper zero-clamped desired sizing, so the bot no longer forces an extra lot in the target direction when it is already at or beyond target. The tested variants were: `V50.10.1` bug-fix only, `V50.10.2` bug-fix plus a slightly stronger microprice tilt, `V50.10.3` bug-fix plus a slightly stronger wall anchor, and `V50.10.4` bug-fix plus a very light quote/take edge tightening.
+Notes: This was a useful but slightly uncomfortable result. The overshoot fix is clearly the right correctness change, but locally it did not improve PnL on day `-1`. `V50.10.1` landed at Rust 12'173 with EMERALDS unchanged at 7'717 and TOMATOES at 4'456 over 808 trades, which is clean and close but still below `V50.10`'s 12'231 / 4'514. The nearby fair variants were weaker still: `V50.10.2` reached 12'099 / TOMATOES 4'382, `V50.10.3` reached 12'120 / TOMATOES 4'403, and the light quote/take tweak `V50.10.4` reached 12'111 / TOMATOES 4'394. So the conclusion is nuanced: the overshoot bug should still be treated as a real execution correctness issue, but in the current local replay it was apparently contributing a small amount of accidental aggressiveness that helped TOMATOES. That means the next clean step is not more local fair drift around the corrected version. It is likely to be a compensating execution tweak that restores a little of that lost participation without reintroducing the bug.
+PnL: Best Rust 12'173 (`V50.10.1`) | Baseline Rust 12'231 (`V50.10`)
+
+V50.11 (Aligned Execution):
+Works: Yes
+Improvement: Fresh continuation built from the corrected `V50.10.1` base, adding only a very small aligned execution boost for TOMATOES. The change lowers taker thresholds slightly when the side matches the current trend direction and the bot still has room to move toward target, adds a tiny near-flat passive size bonus on the aligned side, and trims quote edge a touch in calm/range states when inventory pressure is low. This is intentionally much narrower than the older archived `V50.11` wall-anchor sweep candidate referenced above.
+Notes: The result was completely flat to `V50.10.1`. Rust PnL came in at 12'173 with EMERALDS unchanged at 7'717 and TOMATOES at 4'456 over 808 trades, exactly matching the pure overshoot-fix branch on this replay. So the idea is safe, but at this strength it is effectively inert: it neither recovers the lost edge from fixing the overshoot bug nor harms the clean execution core. The practical takeaway is that the next gain probably needs a slightly stronger or more directly targeted participation change, not just a tiny uniform aligned-side nudge.
+PnL: Official N/A | Rust 12'173
+
+V51:
+Works: Yes
+Improvement: Structural TOMATOES rebuild on top of the clean `V50` family, importing only the high-signal pieces from the stronger old hybrid line. The new module keeps the `V50` pipeline shape, but adds wall-strength persistence, rolling history storage, regression fit and predicted edge, a separate hybrid alpha, guarded conflict damping, fit-aware regime classification, fit-aware target sizing, and volatility/fit-aware take and quote calibration. Inventory control stays clean through one reservation-price shift and explicit target sizing rather than being re-spread across the whole module.
+Notes: Architecturally this is much closer to the right long-term design, but the first calibration did not beat the simpler `V50.10` line. Rust PnL reached 12'167 with EMERALDS unchanged at 7'717 and TOMATOES at 4'450 over 945 trades. That is close to the corrected `V50.10.1` / `V50.11` level, but still below `V50.10`'s 12'231 / 4'514. So the old-family imports look directionally sensible, but in this first pass they mainly increased activity without improving enough execution quality. The key lesson is that `V51` likely needs tighter calibration, not a wholesale rollback: the structure is promising, but the take/quote layer still needs to be made more selective so the richer alpha stack translates into better prices instead of just more trades.
+PnL: Official N/A | Rust 12'167
+
+V51.1:
+Works: Yes
+Improvement: Selective-calibration follow-up on `V51`, aimed specifically at fixing the over-eager first pass without throwing away the stronger TOMATOES structure. The changes are intentionally local: lower alpha blend weight, higher fit threshold for trend classification, higher taker thresholds when fit quality is weak in trend states, slightly wider passive quote edges in trend / strong-trend modes, and smaller passive sizing when fit quality is mediocre. In other words, the richer `V51` alpha stack stays intact, but it now has to earn its trades more often.
+Notes: This is the first real success on the `V51` branch. Rust PnL improved to 12'234 with EMERALDS unchanged at 7'717 and TOMATOES up to 4'517 over 937 trades. That beats both `V51` at 12'167 / 4'450 and the previous clean-family leader `V50.10` at 12'231 / 4'514, though only by a narrow margin. The result is strategically important because it validates the intended direction: the stronger wall-strength / regression / guarded-alpha architecture can beat the simpler clean bot, but only once the take/quote layer is made more selective. So `V51.1` is now the best local clean-family bot in the repo, albeit by a very small edge that still needs official confirmation.
+PnL: Official N/A | Rust 12'234
+
+V51 Ablation Sweep:
+Works: Yes
+Improvement: Narrow follow-up set created to decompose the bigger `V51` merge into isolated imports on top of the corrected `V50.10.1` base. The tested variants were: `V51.2` wall-strength logic only, `V51.3` regression fair term only, `V51.4` hybrid alpha only with fixed momentum and live `flow_ema` usage, and `V51.5` quote / clear behavior tweaks only with corrected clear-inventory sign logic.
+Notes: The ablations were very informative. `V51.2` was the weakest at Rust 12'037 / TOMATOES 4'320, which means wall-strength filtering by itself removed too much useful wall-fair participation. `V51.3` reached 12'165 / 4'448 and `V51.5` reached 12'127 / 4'410, so regression fair alone and quote/clear tweaks alone were both directionally okay but not enough to move the line. The strongest isolated import was `V51.4` at Rust 12'187 / TOMATOES 4'470 over 831 trades. That is still below `V51.1` and `V50.10`, but it clearly says the most valuable old-bot idea in this clean framework is the hybrid-alpha layer, especially once the momentum bug is fixed and `flow_ema` is used rather than just stored. So the next best clean-family move is to keep building around `V51.1`, with hybrid alpha as the main import and the other pieces added only very selectively.
+PnL: Best Rust 12'187 (`V51.4`) | Best Full Hybrid Rust 12'234 (`V51.1`)
+
+V51.1 CMA-ES Sweep:
+Works: Yes
+Improvement: First focused CMA-ES round around `V51.1`, used exactly in the way it should be used here: not to redesign the bot, but to refine a good fixed structure. Two TOMATOES-only profiles were tested with EMERALDS frozen. The first broad profile, `v51_1_tomatoes`, searched alpha blend, fair weights, inventory skew, quote/take edges, fit threshold, and trend threshold. The second narrower profile, `v51_1_exec`, kept the fair skeleton mostly fixed and tuned the smaller execution / calibration block instead: `ALPHA_BLEND_WEIGHT`, `FAIR_ALPHA_WEIGHT`, `INVENTORY_SKEW`, `BASE_QUOTE_EDGE`, `BASE_TAKE_EDGE`, `FIT_THRESHOLD`, `TREND_EDGE_THRESHOLD`, `PASSIVE_SIZE`, and `MAX_TAKE_SIZE`.
+Notes: The CMA-ES result was very informative. The broad profile found no improvement at all over baseline: objective stayed at 26'518.392 with total 24'153 and TOMATOES 9'284 across days `-2` and `-1`, and many sampled candidates collapsed into very high-inventory, much weaker regimes. That confirmed the search space was too loose and that letting fair weights drift was mostly destructive. The narrower execution profile did find a real improvement: best objective rose to 26'695.784 with total 24'313 and TOMATOES 9'444 across the same two days. The winning direction was small and coherent rather than flashy: slightly lower `ALPHA_BLEND_WEIGHT`, slightly lower `FAIR_ALPHA_WEIGHT`, slightly higher `BASE_QUOTE_EDGE` and `BASE_TAKE_EDGE`, a very small increase in `FIT_THRESHOLD` and `TREND_EDGE_THRESHOLD`, and more passive size. That fits the recent bot behavior well: `V51.1` looked like a profitable but somewhat bursty TOMATOES bot, and the optimizer pushed it toward a slightly more selective but more persistent execution style rather than a more reactive or more aggressive one.
+PnL: Broad CMA-ES Best Objective 26'518.392 (baseline tie) | Narrow CMA-ES Best Objective 26'695.784
+
+V51.6:
+Works: Yes
+Improvement: Promoted clean bot from the successful narrow CMA-ES run on top of `V51.1`. `V51.6` keeps the exact `V51.1` architecture and fair structure, but applies the tuned TOMATOES calibration found by the `v51_1_exec` profile: lower `ALPHA_BLEND_WEIGHT`, slightly lower `FAIR_ALPHA_WEIGHT`, slightly higher `INVENTORY_SKEW`, slightly wider `BASE_QUOTE_EDGE`, slightly higher `BASE_TAKE_EDGE`, slightly stricter `FIT_THRESHOLD` / `TREND_EDGE_THRESHOLD`, and a larger passive quote size. The optimizer returned fractional size constants, but the promoted bot keeps the same behavior with clean integer `PASSIVE_SIZE = 9` and `MAX_TAKE_SIZE = 10`.
+Notes: This is the first CMA-ES promotion on the clean-family branch that actually improved the live local result rather than just validating the baseline. Day `-1` Rust PnL rose to 12'305 with EMERALDS unchanged at 7'717 and TOMATOES up to 4'588 over 932 trades. That beats `V51.1` at 12'234 / 4'517 and `V50.10` at 12'231 / 4'514. Just as importantly, the improvement came from the narrower execution-calibration profile rather than the broader fair-weight profile, which strongly suggests the next edge in this family is still mostly in quote/take calibration, not in changing the state or fair architecture again. CMA-ES was useful here exactly because it was applied to a small continuous block around a good branch instead of trying to optimize the whole bot at once.
+PnL: Official N/A | Rust 12'305

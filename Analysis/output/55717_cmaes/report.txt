@@ -1,0 +1,66 @@
+Focused Bot CMA-ES
+==================
+
+Profile: 55717_tomatoes
+Days: -2, -1
+Iterations: 5
+Population: 8
+Elite: 3
+Seed: 4101
+Inventory penalty: 5.0
+Stability weight: 0.2
+
+Parameters:
+- EMERALDS.REFERENCE_WEIGHT: start 0.8, range [0.72, 0.86], sigma 0.02
+- EMERALDS.MID_WEIGHT: start 0.2, range [0.14, 0.28], sigma 0.02
+- EMERALDS.INVENTORY_SKEW: start 0.12, range [0.08, 0.16], sigma 0.01
+- EMERALDS.SOFT_LIMIT_RATIO: start 0.25, range [0.18, 0.34], sigma 0.02
+- TOMATOES.INVENTORY_SKEW: start 0.005, range [0.001, 0.015], sigma 0.002
+- TOMATOES.BASE_TAKE_EDGE: start 0.8, range [0.65, 1.0], sigma 0.06
+- TOMATOES.BASE_QUOTE_EDGE: start 2.75, range [2.4, 3.2], sigma 0.1
+- TOMATOES.SOFT_LIMIT_RATIO: start 0.56828726, range [0.45, 0.68], sigma 0.03
+- TOMATOES.GAMMA_RANGE: start 0.69283327, range [0.45, 0.9], sigma 0.06
+- TOMATOES.RESERVATION_SCALE: start 0.02, range [0.005, 0.06], sigma 0.008
+- TOMATOES.SPREAD_INV_COEF: start 1.1081637, range [0.7, 1.6], sigma 0.12
+- TOMATOES.SPREAD_TIME_COEF: start 1.7791177, range [1.0, 2.3], sigma 0.15
+- TOMATOES.ALPHA_EDGE_SCALE: start 1.4153631, range [1.15, 1.6], sigma 0.06
+- TOMATOES.ALPHA_IMBALANCE_SCALE: start 0.7, range [0.4, 1.0], sigma 0.08
+- TOMATOES.RANGE_RESERVATION_BIAS: start 0.26486122, range [0.15, 0.35], sigma 0.03
+- TOMATOES.REGRESSION_HORIZON: start 0.5, range [0.25, 1.2], sigma 0.12
+
+Baseline:
+- objective: 33468.486
+- total: 30481.500
+- tomatoes_total: 16006.500
+- min_day_total: 15229.500
+- avg_inventory: 11.783
+
+Best:
+- candidate_id: 55717-cmaes-overall-baseline
+- objective: 33468.486
+- total: 30481.500
+- tomatoes_total: 16006.500
+- min_day_total: 15229.500
+- avg_inventory: 11.783
+
+Best Parameters:
+- EMERALDS.REFERENCE_WEIGHT: 0.800000
+- EMERALDS.MID_WEIGHT: 0.200000
+- EMERALDS.INVENTORY_SKEW: 0.120000
+- EMERALDS.SOFT_LIMIT_RATIO: 0.250000
+- TOMATOES.INVENTORY_SKEW: 0.005000
+- TOMATOES.BASE_TAKE_EDGE: 0.800000
+- TOMATOES.BASE_QUOTE_EDGE: 2.750000
+- TOMATOES.SOFT_LIMIT_RATIO: 0.568287
+- TOMATOES.GAMMA_RANGE: 0.692833
+- TOMATOES.RESERVATION_SCALE: 0.020000
+- TOMATOES.SPREAD_INV_COEF: 1.108164
+- TOMATOES.SPREAD_TIME_COEF: 1.779118
+- TOMATOES.ALPHA_EDGE_SCALE: 1.415363
+- TOMATOES.ALPHA_IMBALANCE_SCALE: 0.700000
+- TOMATOES.RANGE_RESERVATION_BIAS: 0.264861
+- TOMATOES.REGRESSION_HORIZON: 0.500000
+
+Per-Day Best Candidate:
+- day -2: total 15229.500, tomatoes 8157.500, emeralds 7072.000, avg_inventory 11.453
+- day -1: total 15252.000, tomatoes 7849.000, emeralds 7403.000, avg_inventory 12.112

@@ -1,0 +1,632 @@
+MARKET MAKING / TRADING STRATEGY REFERENCE
+=========================================
+
+Purpose
+-------
+This file is a quick reference for different trading and market making strategies,
+what kind of product behavior they fit, and where they appeared in earlier winning-style bots.
+
+--------------------------------------------------
+1. SIMPLE MARKET MAKING STRATEGIES
+--------------------------------------------------
+
+1.1 Static Fair-Value Market Making
+-----------------------------------
+Idea:
+- Assume the product has a stable fair value.
+- Buy below fair value.
+- Sell above fair value.
+- Quote around the fair value and collect spread.
+
+Used when:
+- Product is strongly anchored.
+- Price repeatedly returns to one stable level.
+- Mid does not trend much.
+
+Good for:
+- Static products like EMERALDS / RAINFOREST_RESIN type behavior.
+
+Typical logic:
+- Fair = fixed anchor or very slow moving average.
+- Take if ask << fair or bid >> fair.
+- Otherwise quote bid/ask around fair.
+
+Main risk:
+- If the product suddenly trends, static fair becomes wrong.
+
+Seen in earlier winner code:
+- StaticTrader for RAINFOREST_RESIN.
+
+
+1.2 Join / Improve Market Making
+--------------------------------
+Idea:
+- Do not always quote from scratch.
+- Look at current best bid/ask and either:
+  - join them
+  - improve by 1 tick
+  - stay wider if needed
+
+Used when:
+- Book is stable.
+- Spread is meaningful.
+- Queue position matters.
+
+Good for:
+- General market making.
+- Products with reliable book structure.
+
+Typical logic:
+- Bid = best_bid + 1 if still safe.
+- Ask = best_ask - 1 if still safe.
+
+Main risk:
+- Too close to the touch can lead to passive pickoffs.
+
+
+1.3 Inventory-Skewed Market Making
+----------------------------------
+Idea:
+- Shift quotes depending on inventory.
+- If too long, quote more aggressively on sell side.
+- If too short, quote more aggressively on buy side.
+
+Used when:
+- Product fills often.
+- Inventory risk matters.
+- You do not want to sit with large unwanted exposure.
+
+Good for:
+- Almost all market making products.
+
+Typical logic:
+- Fair_adj = fair - inventory * skew
+or
+- Move quote center away from the side that would worsen inventory.
+
+Main risk:
+- Too much skew reduces participation.
+- Too little skew lets inventory run away.
+
+
+1.4 Spread-Capture Only MM
+--------------------------
+Idea:
+- Ignore forecasting almost completely.
+- Just capture spread around a stable center.
+
+Used when:
+- Price prediction is weak.
+- Product is mostly stationary.
+- Spread capture is the main edge.
+
+Good for:
+- Stable, non-trending products.
+
+Main risk:
+- Gets run over in directional moves.
+
+
+--------------------------------------------------
+2. SIMPLE DIRECTIONAL / SIGNAL STRATEGIES
+--------------------------------------------------
+
+2.1 Mean Reversion
+------------------
+Idea:
+- If price moves too far from recent average, expect it to come back.
+
+Used when:
+- Product stretches away from short-term fair and often snaps back.
+- Local overreaction is common.
+
+Good for:
+- Range-bound products.
+- Products with local deviations but weak long trends.
+
+Typical logic:
+- If price > MA + threshold -> sell.
+- If price < MA - threshold -> buy.
+
+Main risk:
+- Dangerous in real strong trends.
+
+Seen in winner code:
+- Underlying mean reversion.
+- Options mean reversion.
+
+
+2.2 Trend Following / Momentum
+------------------------------
+Idea:
+- If market is moving with strong confirmation, trade in that direction.
+
+Used when:
+- Product trends intraday.
+- Microprice / imbalance / flow confirm continuation.
+
+Good for:
+- Dynamic products like TOMATOES / KELP style behavior.
+
+Typical logic:
+- If predicted next move is up -> buy / quote more bullish.
+- If predicted next move is down -> sell / quote more bearish.
+
+Main risk:
+- Chasing too late.
+- Buying tops / selling bottoms.
+
+
+2.3 Informed Trader Following
+-----------------------------
+Idea:
+- Detect a known informed participant.
+- Follow or adapt to their recent trading direction.
+
+Used when:
+- The simulator has recurring informed agents.
+- Their actions predict near-future moves.
+
+Good for:
+- Products with identifiable informed flow.
+
+Typical logic:
+- If informed trader recently bought -> bias long.
+- If informed trader recently sold -> bias short.
+
+Main risk:
+- Signal decays fast.
+- If late, you become exit liquidity.
+
+Seen in winner code:
+- DynamicTrader / InkTrader using Olivia.
+
+
+--------------------------------------------------
+3. ADVANCED MARKET MAKING FRAMEWORKS
+--------------------------------------------------
+
+3.1 Avellaneda-Stoikov (AS)
+---------------------------
+Idea:
+- Inventory-aware market making framework.
+- Computes reservation price and optimal spread from:
+  - fair price
+  - inventory
+  - volatility
+  - time remaining
+  - risk aversion
+
+Used when:
+- You want a clean inventory / quote-control model.
+- You already have a good fair value estimate.
+
+Good for:
+- Quote control.
+- Risk control layer on top of another alpha model.
+
+Best use:
+- As a secondary quote-control overlay, not always as the main alpha engine.
+
+Main risk:
+- Can become too conservative.
+- Often underperforms if passive fill quality and alpha matter more than inventory theory.
+
+Important note:
+- Best for controlling quotes.
+- Not enough alone if the product edge is mostly from flow/trend signals.
+
+
+3.2 GLFT (Guéant-Lehalle-Fernandez-Tapia)
+-----------------------------------------
+Idea:
+- Similar family as AS but often more practical for quoting / inventory approximations.
+
+Used when:
+- You like AS-style inventory-aware MM.
+- You want a more usable control-layer variant.
+
+Good for:
+- Quote control and inventory smoothing.
+
+Main risk:
+- Still mainly a control model, not a full predictive trading model.
+
+
+3.3 Queue-Aware Market Making
+-----------------------------
+Idea:
+- The value of a passive quote depends on queue position and fill probability.
+- Being first or early in queue matters.
+
+Used when:
+- Passive fills matter a lot.
+- You get picked off or fill too slowly.
+- Quote placement quality matters more than raw fair value.
+
+Good for:
+- Products where passive quality is critical.
+
+Typical logic:
+- Estimate fill probability by:
+  - distance from touch
+  - queue size
+  - side
+  - spread
+  - toxicity
+- Post only if expected passive EV is positive.
+
+Main risk:
+- Needs good fill attribution and statistics.
+
+
+3.4 Alpha-Aware Market Making
+-----------------------------
+Idea:
+- Mix directional alpha with market making.
+- Quote center / skew depends on short-term signal.
+
+Used when:
+- Product has directional microstructure signal.
+- You still want to collect spread while leaning with the market.
+
+Good for:
+- Products like TOMATOES.
+- Dynamic but still market-makable products.
+
+Typical logic:
+- Fair = mid + alpha
+- Reservation / quotes shift with signal
+- Taker and maker logic separated
+
+Main risk:
+- Double-counting alpha.
+- Too aggressive quote centering can worsen passive selection.
+
+
+--------------------------------------------------
+4. RELATIVE VALUE / ARBITRAGE STRATEGIES
+--------------------------------------------------
+
+4.1 ETF Basket Arbitrage
+------------------------
+Idea:
+- Compare ETF price with weighted sum of constituents.
+- If ETF too expensive -> short ETF, buy constituents.
+- If ETF too cheap -> buy ETF, short constituents.
+
+Used when:
+- A basket product is derived from components.
+- Weight relationship is stable.
+
+Good for:
+- PICNIC_BASKET style products.
+
+Typical logic:
+- Basket spread = ETF price - weighted constituent price
+- Trade when spread exceeds threshold
+
+Main risk:
+- Hedge ratio wrong.
+- Constituent liquidity mismatch.
+
+Seen in winner code:
+- EtfTrader.
+
+
+4.2 Cross-Product Hedged Relative Value
+---------------------------------------
+Idea:
+- Trade one asset and hedge with another related asset.
+
+Used when:
+- Two products are linked but not identical.
+- One lags or deviates from the other.
+
+Good for:
+- Basket/constituent relationships.
+- Option/underlying relationships.
+
+Main risk:
+- Hedge imperfect.
+- Correlation breaks.
+
+
+4.3 Conversion Arbitrage
+------------------------
+Idea:
+- Compare local price versus external / converted price after fees.
+- Trade only when the conversion economics are positive.
+
+Used when:
+- Simulator includes conversion observations.
+- Transport / tariffs / fees exist.
+
+Good for:
+- Import/export style products.
+
+Typical logic:
+- Compute local buy/sell versus external bid/ask after costs.
+- Trade when arbitrage > threshold.
+
+Main risk:
+- Fees or conversions remove apparent edge.
+- Overtrading small fake arbitrage.
+
+Seen in winner code:
+- CommodityTrader for MAGNIFICENT_MACARONS.
+
+
+--------------------------------------------------
+5. OPTIONS / DERIVATIVES STRATEGIES
+--------------------------------------------------
+
+5.1 Black-Scholes Theoretical Value Trading
+-------------------------------------------
+Idea:
+- Use option pricing model to compute theoretical value.
+- Compare market option price with theory.
+
+Used when:
+- Options exist and underlying price is available.
+- Vol estimate is usable.
+
+Good for:
+- Option chains around one underlying.
+
+Typical logic:
+- If option market price > theoretical -> sell option.
+- If option market price < theoretical -> buy option.
+
+Main risk:
+- Wrong volatility estimate makes theory useless.
+
+
+5.2 Implied Volatility (IV) Scalping
+------------------------------------
+Idea:
+- Compare current option mispricing against a rolling mean of theoretical deviation.
+- Trade when implied-vol pricing is stretched.
+
+Used when:
+- Option prices oscillate around theoretical value.
+- Smile / vol structure is reasonably stable.
+
+Good for:
+- Liquid options.
+- Repeated IV over/underpricing.
+
+Seen in winner code:
+- OptionTrader IV scalping logic.
+
+
+5.3 Option Mean Reversion
+-------------------------
+Idea:
+- Option prices / deviations revert to a recent average.
+
+Used when:
+- Option mispricing is temporary.
+- Market repeatedly overreacts.
+
+Main risk:
+- Underlying move can make option reversion idea wrong.
+
+
+5.4 Delta / Vega Hedged Option Trading
+--------------------------------------
+Idea:
+- Trade option mispricing and hedge the underlying exposure.
+
+Used when:
+- You want purer volatility / mispricing exposure.
+- Underlying moves can dominate option PnL.
+
+Good for:
+- More advanced option trading setups.
+
+Main risk:
+- Hedge lag and transaction cost.
+
+
+--------------------------------------------------
+6. PRODUCT BEHAVIOR -> BEST STRATEGY MATCH
+--------------------------------------------------
+
+6.1 Strongly Anchored Static Product
+------------------------------------
+Behavior:
+- Price stays near one stable value.
+- Very little drift.
+- Spread capture matters more than prediction.
+
+Best strategies:
+- Static fair-value MM
+- Join / improve MM
+- Inventory-skewed MM
+- Spread-capture only MM
+
+Example:
+- EMERALDS / RAINFOREST_RESIN style.
+
+
+6.2 Dynamic but Locally Mean-Reverting Product
+----------------------------------------------
+Behavior:
+- Short-term deviations occur often.
+- Local snapback is common.
+- Can still move intraday.
+
+Best strategies:
+- Mean reversion
+- Alpha-aware MM
+- Inventory-skewed MM
+- Passive EV filter
+
+Example:
+- TOMATOES if it stretches and then reverts locally.
+
+
+6.3 Trendy / Flow-Driven Product
+--------------------------------
+Behavior:
+- Strong short-term moves.
+- Book imbalance / microprice / OFI matter.
+- Trend participation is important.
+
+Best strategies:
+- Trend following
+- Alpha-aware MM
+- Aggressive taking in strong regimes
+- Light inventory overlay
+- Possibly informed-trader following
+
+Example:
+- KELP / TOMATOES trend states.
+
+
+6.4 Product with Known Informed Flow
+------------------------------------
+Behavior:
+- Certain traders consistently move before price.
+- Their prints matter.
+
+Best strategies:
+- Informed-trader following
+- One-sided quoting in informed direction
+- Reduce quoting against informed flow
+
+Example:
+- Olivia-based winner logic.
+
+
+6.5 Basket / Composite Product
+------------------------------
+Behavior:
+- One product should equal weighted sum of others.
+
+Best strategies:
+- ETF basket arbitrage
+- Relative value spread trading
+- Hedge with constituents
+
+Example:
+- PICNIC_BASKET1 / PICNIC_BASKET2.
+
+
+6.6 Option Chain Around Underlying
+----------------------------------
+Behavior:
+- Several strikes linked to one underlying.
+- Mispricing can come from IV or smile distortion.
+
+Best strategies:
+- BS theoretical value trading
+- IV scalping
+- Mean reversion in theo deviation
+- Delta/vega hedging
+
+Example:
+- VOLCANIC_ROCK_VOUCHER products.
+
+
+6.7 Conversion / External Market Product
+----------------------------------------
+Behavior:
+- Local and external prices linked by fees and tariffs.
+
+Best strategies:
+- Conversion arbitrage
+- Threshold-based arb with fee adjustment
+- Small-size repeated execution
+
+Example:
+- MAGNIFICENT_MACARONS.
+
+
+6.8 Toxic / Highly Adverse Product
+----------------------------------
+Behavior:
+- Passive fills often bad.
+- Large jumps or wide spreads.
+- You get picked off if you quote too close.
+
+Best strategies:
+- Queue-aware MM
+- Passive EV veto
+- Wider quote placement
+- More aggressive filtering
+- Less blind spread capture
+
+Main rule:
+- Do not force passive MM just because spread looks big.
+
+
+--------------------------------------------------
+7. PRACTICAL STRATEGY BUILDING ORDER
+--------------------------------------------------
+
+If starting from scratch, the usual order is:
+
+1. Static fair-value MM
+2. Add inventory skew
+3. Add join/improve logic
+4. Add local mean reversion or trend signal
+5. Add passive EV / fill-quality control
+6. Add relative value / basket arb if product allows
+7. Add options / conversion / informed-flow logic if special structure exists
+
+For most products:
+- First solve fair value
+- Then solve inventory
+- Then solve passive fill quality
+- Then solve special product structure
+
+
+--------------------------------------------------
+8. WHAT TO USE FOR OUR OWN PRODUCTS
+--------------------------------------------------
+
+EMERALDS
+--------
+Best fit:
+- Static fair-value MM
+- Inventory skew
+- Join/improve
+- Rare aggressive takes when clearly mispriced
+
+Do not overcomplicate.
+
+
+TOMATOES
+--------
+Best fit:
+- Alpha-aware MM
+- Trend + local reversion hybrid
+- Passive quality filter
+- Queue-aware / fill-quality-aware logic
+- Strong taker logic in good trend states
+
+Less useful as main engine:
+- Pure Avellaneda-Stoikov alone
+
+
+--------------------------------------------------
+9. KEY LESSON
+--------------------------------------------------
+
+No strategy is "best" by name alone.
+
+The right question is always:
+"What kind of behavior does this product have?"
+
+Then match the product to the strategy:
+
+- anchored -> static MM
+- flow-driven -> alpha-aware MM
+- trending -> momentum / taker support
+- reverting -> mean reversion
+- basket-linked -> relative value / ETF arb
+- option-linked -> theoretical value / IV trading
+- conversion-linked -> conversion arb
+- toxic passive fills -> queue-aware MM and passive EV filters

@@ -1,0 +1,14 @@
+{
+  "label": "wall_22",
+  "run_id": "v39-4-wall-23",
+  "total": 15764.0,
+  "emeralds": 7723.0,
+  "tomatoes": 8041.0,
+  "trades": 693,
+  "params": {
+    "WALL_ALPHA_WEIGHT": 0.0,
+    "WALL_FAIR_WEIGHT": 0.2,
+    "WALL_EWMA_ALPHA": 0.22,
+    "WALL_PERSISTENCE_FLOOR": 0.25
+  }
+}
