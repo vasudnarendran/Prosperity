@@ -141,6 +141,41 @@ PROFILES: Dict[str, Dict[str, object]] = {
             ParameterSpec("TOMATOES", "DEFENSIVE_VOL_THRESHOLD", 3.15, 3.55, 3.3735488393, 0.06),
         ],
     },
+    "v51_1_tomatoes": {
+        "source_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1.py",
+        "generated_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1_cmaes_candidate.py",
+        "best_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1_cmaes_best.py",
+        "output_dir": WORKSPACE_ROOT / "Analysis" / "output" / "v51_1_cmaes",
+        "specs": [
+            ParameterSpec("CLASS:TomatoesBot", "ALPHA_BLEND_WEIGHT", 0.20, 0.34, 0.28, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "FAIR_WALL_WEIGHT", 0.38, 0.50, 0.44, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "FAIR_MICRO_WEIGHT", 0.16, 0.26, 0.20, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "FAIR_REGRESSION_WEIGHT", 0.06, 0.16, 0.10, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "FAIR_ALPHA_WEIGHT", 0.26, 0.40, 0.34, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "INVENTORY_SKEW", 0.030, 0.060, 0.045, 0.004),
+            ParameterSpec("CLASS:TomatoesBot", "BASE_QUOTE_EDGE", 1.90, 2.20, 2.05, 0.04),
+            ParameterSpec("CLASS:TomatoesBot", "BASE_TAKE_EDGE", 0.70, 0.92, 0.82, 0.03),
+            ParameterSpec("CLASS:TomatoesBot", "FIT_THRESHOLD", 0.36, 0.50, 0.42, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "TREND_EDGE_THRESHOLD", 0.80, 1.10, 0.95, 0.04),
+        ],
+    },
+    "v51_1_exec": {
+        "source_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1.py",
+        "generated_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1_exec_candidate.py",
+        "best_trader": WORKSPACE_ROOT / "Bots" / "Traderv51_1_exec_best.py",
+        "output_dir": WORKSPACE_ROOT / "Analysis" / "output" / "v51_1_exec_cmaes",
+        "specs": [
+            ParameterSpec("CLASS:TomatoesBot", "ALPHA_BLEND_WEIGHT", 0.24, 0.32, 0.28, 0.012),
+            ParameterSpec("CLASS:TomatoesBot", "FAIR_ALPHA_WEIGHT", 0.30, 0.38, 0.34, 0.012),
+            ParameterSpec("CLASS:TomatoesBot", "INVENTORY_SKEW", 0.038, 0.052, 0.045, 0.002),
+            ParameterSpec("CLASS:TomatoesBot", "BASE_QUOTE_EDGE", 1.96, 2.12, 2.05, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "BASE_TAKE_EDGE", 0.76, 0.88, 0.82, 0.018),
+            ParameterSpec("CLASS:TomatoesBot", "FIT_THRESHOLD", 0.39, 0.47, 0.42, 0.012),
+            ParameterSpec("CLASS:TomatoesBot", "TREND_EDGE_THRESHOLD", 0.88, 1.02, 0.95, 0.02),
+            ParameterSpec("CLASS:TomatoesBot", "PASSIVE_SIZE", 6.0, 10.0, 8.0, 0.6),
+            ParameterSpec("CLASS:TomatoesBot", "MAX_TAKE_SIZE", 8.0, 12.0, 10.0, 0.6),
+        ],
+    },
 }
 
 
@@ -183,10 +218,27 @@ def replace_in_block(content: str, block_name: str, key: str, value: float) -> s
     return content[: match.start(2)] + replaced_body + content[match.end(2) :]
 
 
+def replace_class_constant(content: str, class_name: str, key: str, value: float) -> str:
+    pattern = rf'(^class {re.escape(class_name)}:.*?^\s{{4}}{re.escape(key)}\s*=\s*)([^\n]+)'
+    replaced, count = re.subn(
+        pattern,
+        rf"\g<1>{repr(round(value, 10))}",
+        content,
+        count=1,
+        flags=re.S | re.M,
+    )
+    if count != 1:
+        raise RuntimeError(f"Failed to replace class constant {class_name}.{key}")
+    return replaced
+
+
 def write_trader(source: Path, target: Path, params: Dict[Tuple[str, str], float]) -> None:
     content = source.read_text()
     for (block, key), value in params.items():
-        content = replace_in_block(content, block, key, value)
+        if block.startswith("CLASS:"):
+            content = replace_class_constant(content, block.split(":", 1)[1], key, value)
+        else:
+            content = replace_in_block(content, block, key, value)
     target.write_text(content)
 
 

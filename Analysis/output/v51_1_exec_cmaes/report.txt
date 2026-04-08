@@ -1,0 +1,52 @@
+Focused Bot CMA-ES
+==================
+
+Profile: v51_1_exec
+Days: -2, -1
+Iterations: 5
+Population: 10
+Elite: 4
+Seed: 4101
+Inventory penalty: 5.0
+Stability weight: 0.2
+
+Parameters:
+- CLASS:TomatoesBot.ALPHA_BLEND_WEIGHT: start 0.28, range [0.24, 0.32], sigma 0.012
+- CLASS:TomatoesBot.FAIR_ALPHA_WEIGHT: start 0.34, range [0.3, 0.38], sigma 0.012
+- CLASS:TomatoesBot.INVENTORY_SKEW: start 0.045, range [0.038, 0.052], sigma 0.002
+- CLASS:TomatoesBot.BASE_QUOTE_EDGE: start 2.05, range [1.96, 2.12], sigma 0.02
+- CLASS:TomatoesBot.BASE_TAKE_EDGE: start 0.82, range [0.76, 0.88], sigma 0.018
+- CLASS:TomatoesBot.FIT_THRESHOLD: start 0.42, range [0.39, 0.47], sigma 0.012
+- CLASS:TomatoesBot.TREND_EDGE_THRESHOLD: start 0.95, range [0.88, 1.02], sigma 0.02
+- CLASS:TomatoesBot.PASSIVE_SIZE: start 8.0, range [6.0, 10.0], sigma 0.6
+- CLASS:TomatoesBot.MAX_TAKE_SIZE: start 10.0, range [8.0, 12.0], sigma 0.6
+
+Baseline:
+- objective: 26518.392
+- total: 24153.000
+- tomatoes_total: 9284.000
+- min_day_total: 11919.000
+- avg_inventory: 3.682
+
+Best:
+- candidate_id: v51-1-exec-it04-cand06
+- objective: 26695.784
+- total: 24313.000
+- tomatoes_total: 9444.000
+- min_day_total: 12008.000
+- avg_inventory: 3.763
+
+Best Parameters:
+- CLASS:TomatoesBot.ALPHA_BLEND_WEIGHT: 0.266763
+- CLASS:TomatoesBot.FAIR_ALPHA_WEIGHT: 0.332561
+- CLASS:TomatoesBot.INVENTORY_SKEW: 0.045146
+- CLASS:TomatoesBot.BASE_QUOTE_EDGE: 2.066076
+- CLASS:TomatoesBot.BASE_TAKE_EDGE: 0.832272
+- CLASS:TomatoesBot.FIT_THRESHOLD: 0.423770
+- CLASS:TomatoesBot.TREND_EDGE_THRESHOLD: 0.956683
+- CLASS:TomatoesBot.PASSIVE_SIZE: 9.016860
+- CLASS:TomatoesBot.MAX_TAKE_SIZE: 10.248230
+
+Per-Day Best Candidate:
+- day -2: total 12008.000, tomatoes 4856.000, emeralds 7152.000, avg_inventory 3.994
+- day -1: total 12305.000, tomatoes 4588.000, emeralds 7717.000, avg_inventory 3.532
