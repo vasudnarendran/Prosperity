@@ -1,0 +1,64 @@
+{
+  "params": {
+    "SIGNAL_MEMORY_DECAY": 0.78,
+    "FORECAST_MEMORY_DECAY": 0.84,
+    "CONFIDENCE_AGREE_WEIGHT": 0.6,
+    "TAKE_CONFIDENCE_SCALE": 0.18,
+    "QUOTE_CONFIDENCE_SCALE": 0.22
+  },
+  "meta": {
+    "day_neg1": 15079.0,
+    "day_neg2": 14803.0,
+    "avg": 14941.0,
+    "objective": 14934.1,
+    "regression_penalty": 6.0,
+    "imbalance_penalty": 0.9,
+    "drift_penalty": 0.0,
+    "baseline_day_neg1": 15081.0,
+    "baseline_day_neg2": 14803.0,
+    "baseline_avg": 14942.0,
+    "total_evaluations": 52,
+    "seed": 53,
+    "max_iter": 4,
+    "population": 6,
+    "parents": 3,
+    "sigma0": 0.06,
+    "regression_penalty_weight": 3.0,
+    "imbalance_penalty_weight": 0.45,
+    "drift_penalty_weight": 80.0
+  },
+  "history": [
+    {
+      "generation": 1,
+      "gen_best_objective": 14934.02604245971,
+      "gen_best_avg": 14941.0,
+      "global_best_objective": 14934.1,
+      "global_best_avg": 14941.0,
+      "sigma": 0.052988478296952274
+    },
+    {
+      "generation": 2,
+      "gen_best_objective": 14933.925760566035,
+      "gen_best_avg": 14941.0,
+      "global_best_objective": 14934.1,
+      "global_best_avg": 14941.0,
+      "sigma": 0.050344753460837735
+    },
+    {
+      "generation": 3,
+      "gen_best_objective": 14934.040327433342,
+      "gen_best_avg": 14941.0,
+      "global_best_objective": 14934.1,
+      "global_best_avg": 14941.0,
+      "sigma": 0.04384237245457047
+    },
+    {
+      "generation": 4,
+      "gen_best_objective": 14934.039688075347,
+      "gen_best_avg": 14941.0,
+      "global_best_objective": 14934.1,
+      "global_best_avg": 14941.0,
+      "sigma": 0.04022754752634357
+    }
+  ]
+}

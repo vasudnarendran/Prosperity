@@ -33,8 +33,8 @@ DEFAULT_TOMATOES_PARAMS = {
     "REGRESSION_WEIGHT": 0.20,
     "RESIDUAL_REVERT_WEIGHT": 0.12,
     "IMBALANCE_WEIGHT": 0.35,
-    "INVENTORY_SKEW": 0.005,
-    "BASE_TAKE_EDGE": 0.78,
+    "INVENTORY_SKEW": 0.0061691989,
+    "BASE_TAKE_EDGE": 0.58383306,
     "BASE_QUOTE_EDGE": 2.68,
     "MAX_QUOTE_EDGE": 9.0,
     "PASSIVE_SIZE": 8,
@@ -47,7 +47,7 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_IMBALANCE_THRESHOLD": 0.12,
     "TOXIC_SPREAD_THRESHOLD": 15.0,
     "TOXIC_VOLATILITY_THRESHOLD": 3.2,
-    "SOFT_LIMIT_RATIO": 0.56828726,
+    "SOFT_LIMIT_RATIO": 0.55441406,
     "POSITION_BIAS_DIVISOR": 12.0,
     "TREND_FAIR_BONUS": 0.25,
     "TREND_ENTRY_TAKE_BONUS": 3.0,
@@ -57,17 +57,17 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_PASSIVE_SIZE_BONUS": 2.0,
     "VOL_CONTROL_WINDOW": 8,
     "TIME_HORIZON_TICKS": 10000.0,
-    "GAMMA_RANGE": 0.69283327,
+    "GAMMA_RANGE": 0.9259926,
     "GAMMA_TREND": 0.10,
     "GAMMA_VOLATILE": 0.40,
-    "RESERVATION_SCALE": 0.02,
-    "SPREAD_VOL_COEF": 0.1,
-    "SPREAD_INV_COEF": 1.1081637,
-    "SPREAD_TIME_COEF": 1.7791177,
+    "RESERVATION_SCALE": 0.01226798,
+    "SPREAD_VOL_COEF": 0.05,
+    "SPREAD_INV_COEF": 1.0710913,
+    "SPREAD_TIME_COEF": 2.0126903,
     "TREND_RESERVATION_BIAS": 0.04,
-    "RANGE_RESERVATION_BIAS": 0.26486122,
-    "ALPHA_EDGE_SCALE": 1.4153631,
-    "ALPHA_IMBALANCE_SCALE": 0.7,
+    "RANGE_RESERVATION_BIAS": 0.23334699,
+    "ALPHA_EDGE_SCALE": 1.5481717,
+    "ALPHA_IMBALANCE_SCALE": 0.60122389,
     "ALPHA_THRESHOLD_SCALE": 1.03,
     "TREND_SELL_HOLD_EXTRA": 0.24,
     "TREND_BUY_TAKE_EXTRA": 0.08,
@@ -93,10 +93,10 @@ DEFAULT_TOMATOES_PARAMS = {
     "BURST_CONFIRM_IMBALANCE": 0.10,
     "PRESSURE_MEMORY_DECAY": 0.82,
     "PRESSURE_PRICE_BUCKET": 2.0,
-    "PRESSURE_BIAS_SCALE": 0.22,
-    "BREAKOUT_FOLLOW_SCALE": 0.18,
-    "BREAKOUT_QUOTE_TIGHTEN": 0.18,
-    "BREAKOUT_HOLD_BONUS": 0.12,
+    "PRESSURE_BIAS_SCALE": 0.26034513,
+    "BREAKOUT_FOLLOW_SCALE": 0.18817487,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.12914319,
+    "BREAKOUT_HOLD_BONUS": 0.070081701,
     "BOOK_ACTIVITY_FLOOR": 0.60,
     "BOOK_STEP_WEIGHT": 0.85,
     "BOOK_DEPLETION_WEIGHT": 0.65,
@@ -105,6 +105,11 @@ DEFAULT_TOMATOES_PARAMS = {
     "MID_DRIFT_WEIGHT": 0.25,
     "SPREAD_COMPRESSION_WEIGHT": 0.35,
     "PERSISTENCE_WEIGHT": 0.35,
+    "SIGNAL_MEMORY_DECAY": 0.78,
+    "FORECAST_MEMORY_DECAY": 0.84,
+    "CONFIDENCE_AGREE_WEIGHT": 0.60,
+    "TAKE_CONFIDENCE_SCALE": 0.18,
+    "QUOTE_CONFIDENCE_SCALE": 0.22,
 }
 
 
@@ -122,6 +127,7 @@ class SignalSnapshot:
     regime: str
     target_position: int
     adjusted_fair: float
+    signal_confidence: float
 
 
 class BaseProductTrader:
@@ -233,6 +239,15 @@ class BaseProductTrader:
                 continue
         self.product_memory[key] = cleaned
         return cleaned
+
+    def memory_scalar(self, key: str, default: float = 0.0) -> float:
+        raw = self.product_memory.get(key, default)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = float(default)
+        self.product_memory[key] = value
+        return value
 
     def has_book(self) -> bool:
         return self.best_bid is not None and self.best_ask is not None and self.mid is not None and self.micro is not None
@@ -878,6 +893,92 @@ class TomatoesTrader(BaseProductTrader):
             "imbalance": float(self.imbalance),
         }
 
+    def update_forecast_quality_memory(self) -> float:
+        forecast_memory = self.memory_scalar("forecast_quality_memory")
+        raw_previous = self.product_memory.get("last_forecast")
+        if not isinstance(raw_previous, dict):
+            self.product_memory["forecast_quality_memory"] = forecast_memory
+            return forecast_memory
+
+        try:
+            previous_mid = float(raw_previous["mid"])
+            previous_edge = float(raw_previous["predicted_edge"])
+        except (KeyError, TypeError, ValueError):
+            self.product_memory["forecast_quality_memory"] = forecast_memory
+            return forecast_memory
+
+        realized_move = float(self.mid) - previous_mid
+        predicted_unit = max(-1.0, min(1.0, previous_edge / max(1.0, self.STRONG_TREND_EDGE)))
+        realized_unit = max(-1.0, min(1.0, realized_move / 2.0))
+        quality_score = predicted_unit * realized_unit
+        forecast_memory = (
+            self.FORECAST_MEMORY_DECAY * forecast_memory
+            + (1.0 - self.FORECAST_MEMORY_DECAY) * quality_score
+        )
+        forecast_memory = max(-1.0, min(1.0, forecast_memory))
+        self.product_memory["forecast_quality_memory"] = forecast_memory
+        return forecast_memory
+
+    def signal_agreement_score(
+        self,
+        regression_edge: float,
+        hybrid_alpha: float,
+        pressure_bias: float,
+        breakout_score: float,
+        flow_bias: float,
+        predicted_edge: float,
+    ) -> float:
+        direction = 0.0
+        if abs(predicted_edge) >= 0.05:
+            direction = math.copysign(1.0, predicted_edge)
+        elif abs(regression_edge) >= 0.05:
+            direction = math.copysign(1.0, regression_edge)
+
+        if direction == 0.0:
+            return 0.0
+
+        components = (
+            (0.35, regression_edge / max(1.0, self.STRONG_TREND_EDGE)),
+            (0.20, hybrid_alpha / max(1.0, self.ALPHA_CAP)),
+            (0.15, pressure_bias / 2.0),
+            (0.15, breakout_score / 2.0),
+            (0.15, flow_bias / 0.35),
+        )
+
+        score = 0.0
+        total_weight = 0.0
+        for weight, raw_value in components:
+            contribution = max(-1.0, min(1.0, raw_value))
+            score += weight * contribution * direction
+            total_weight += weight
+
+        if total_weight <= 1e-9:
+            return 0.0
+        return max(-1.0, min(1.0, score / total_weight))
+
+    def update_signal_confidence_memory(self, agreement_score: float) -> float:
+        signal_memory = self.memory_scalar("signal_confidence_memory")
+        signal_memory = (
+            self.SIGNAL_MEMORY_DECAY * signal_memory
+            + (1.0 - self.SIGNAL_MEMORY_DECAY) * agreement_score
+        )
+        signal_memory = max(-1.0, min(1.0, signal_memory))
+        self.product_memory["signal_confidence_memory"] = signal_memory
+        return signal_memory
+
+    def combined_signal_confidence(self, signal_memory: float, forecast_memory: float) -> float:
+        confidence = (
+            self.CONFIDENCE_AGREE_WEIGHT * signal_memory
+            + (1.0 - self.CONFIDENCE_AGREE_WEIGHT) * forecast_memory
+        )
+        return max(-1.0, min(1.0, confidence))
+
+    def record_forecast_snapshot(self, predicted_edge: float) -> None:
+        self.product_memory["last_forecast"] = {
+            "mid": float(self.mid),
+            "predicted_edge": float(predicted_edge),
+        }
+
     def hybrid_alpha(self) -> Tuple[float, float]:
         reference_price = float(self.recent_average)
         half_spread = max(1.0, float(self.spread) / 2.0)
@@ -1092,6 +1193,7 @@ class TomatoesTrader(BaseProductTrader):
         return fair - (self.projected_position() * self.INVENTORY_SKEW)
 
     def build_signal_snapshot(self) -> Tuple[SignalSnapshot, Dict[str, float]]:
+        forecast_memory = self.update_forecast_quality_memory()
         predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
         regression_edge = (predicted_next - float(self.mid)) * self.ALPHA_EDGE_SCALE
 
@@ -1129,6 +1231,16 @@ class TomatoesTrader(BaseProductTrader):
             + self.BREAKOUT_FOLLOW_SCALE * breakout_score
             + (0.20 * pressure_bias)
         )
+        agreement_score = self.signal_agreement_score(
+            regression_edge,
+            hybrid_alpha,
+            pressure_bias,
+            breakout_score,
+            flow_metrics["bias"],
+            predicted_edge,
+        )
+        signal_memory = self.update_signal_confidence_memory(agreement_score)
+        signal_confidence = self.combined_signal_confidence(signal_memory, forecast_memory)
         predicted_next = float(self.mid) + predicted_edge
         regime = self.classify_state(
             predicted_edge,
@@ -1160,7 +1272,9 @@ class TomatoesTrader(BaseProductTrader):
             regime=regime,
             target_position=target_position,
             adjusted_fair=adjusted_fair,
+            signal_confidence=signal_confidence,
         )
+        self.record_forecast_snapshot(predicted_edge)
         return snapshot, flow_metrics
 
     def trend_hold_adjustment(self, side: str, regime: str, predicted_edge: float) -> float:
@@ -1193,6 +1307,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        signal_confidence: float = 0.0,
     ) -> float:
         side_sign = -1.0 if side == "BUY" else 1.0
         threshold = adjusted_fair + side_sign * self.take_edge(
@@ -1202,6 +1317,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            signal_confidence,
         )
         threshold += self.trend_hold_adjustment(side, regime, predicted_edge)
         threshold += self.breakout_hold_adjustment(side, breakout_score)
@@ -1240,6 +1356,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        signal_confidence: float = 0.0,
     ) -> float:
         edge = self.BASE_TAKE_EDGE
 
@@ -1295,6 +1412,18 @@ class TomatoesTrader(BaseProductTrader):
             else:
                 edge += 0.12 * breakout_conviction
 
+        confidence = max(-1.0, min(1.0, signal_confidence))
+        aligned_with_edge = (side == "BUY" and predicted_edge > 0) or (
+            side == "SELL" and predicted_edge < 0
+        )
+        if confidence > 0:
+            if aligned_with_edge:
+                edge -= self.TAKE_CONFIDENCE_SCALE * confidence
+            else:
+                edge += 0.10 * self.TAKE_CONFIDENCE_SCALE * confidence
+        elif confidence < 0:
+            edge += self.TAKE_CONFIDENCE_SCALE * abs(confidence)
+
         return max(0.5, edge)
 
     def quote_edge(
@@ -1303,6 +1432,7 @@ class TomatoesTrader(BaseProductTrader):
         volatility: float,
         fit_quality: float,
         breakout_score: float = 0.0,
+        signal_confidence: float = 0.0,
     ) -> float:
         tau = self.time_fraction_remaining()
         gamma = self.control_gamma(regime)
@@ -1322,6 +1452,11 @@ class TomatoesTrader(BaseProductTrader):
         edge += self.SPREAD_TIME_COEF * gamma * tau
         if abs(breakout_score) >= 1.10 and regime in {"trend_up", "trend_down"}:
             edge -= min(0.90, self.BREAKOUT_QUOTE_TIGHTEN * 0.35 * abs(breakout_score))
+        confidence = max(-1.0, min(1.0, signal_confidence))
+        if confidence > 0:
+            edge -= self.QUOTE_CONFIDENCE_SCALE * confidence
+        elif confidence < 0:
+            edge += 1.15 * self.QUOTE_CONFIDENCE_SCALE * abs(confidence)
         return min(self.MAX_QUOTE_EDGE, max(1.0, edge))
 
     def passive_quotes(
@@ -1333,8 +1468,9 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        signal_confidence: float = 0.0,
     ) -> Tuple[Optional[int], Optional[int]]:
-        quote_edge = self.quote_edge(regime, volatility, fit_quality, breakout_score)
+        quote_edge = self.quote_edge(regime, volatility, fit_quality, breakout_score, signal_confidence)
         buy_quote = math.floor(adjusted_fair - quote_edge)
         sell_quote = math.ceil(adjusted_fair + quote_edge)
         buy_quote, sell_quote = self.clamp_inside_spread(buy_quote, sell_quote)
@@ -1426,6 +1562,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        signal_confidence: float = 0.0,
     ) -> Tuple[bool, bool]:
         took_buy = False
         took_sell = False
@@ -1438,6 +1575,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            signal_confidence,
         )
 
         if (
@@ -1469,6 +1607,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            signal_confidence,
         )
 
         if (
@@ -1507,6 +1646,7 @@ class TomatoesTrader(BaseProductTrader):
             snapshot.fit_quality,
             snapshot.volatility,
             snapshot.breakout_score,
+            snapshot.signal_confidence,
         )
 
         buy_quote, sell_quote = self.passive_quotes(
@@ -1517,6 +1657,7 @@ class TomatoesTrader(BaseProductTrader):
             snapshot.fit_quality,
             snapshot.volatility,
             snapshot.breakout_score,
+            snapshot.signal_confidence,
         )
         position = self.projected_position()
 

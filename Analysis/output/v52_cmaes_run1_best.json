@@ -1,0 +1,75 @@
+{
+  "params": {
+    "SPREAD_INV_COEF": 1.0710913,
+    "RESERVATION_SCALE": 0.01226798,
+    "BASE_TAKE_EDGE": 0.58383306,
+    "ALPHA_EDGE_SCALE": 1.5481717,
+    "ALPHA_IMBALANCE_SCALE": 0.60122389,
+    "PRESSURE_BIAS_SCALE": 0.26034513,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.12914319,
+    "BREAKOUT_HOLD_BONUS": 0.070081701
+  },
+  "meta": {
+    "day_neg1": 15081.0,
+    "day_neg2": 14803.0,
+    "avg": 14942.0,
+    "objective": 14942.0,
+    "regression_penalty": 0.0,
+    "imbalance_penalty": 0.0,
+    "drift_penalty": 0.0,
+    "baseline_day_neg1": 15081.0,
+    "baseline_day_neg2": 14803.0,
+    "baseline_avg": 14942.0,
+    "total_evaluations": 64,
+    "seed": 52,
+    "max_iter": 5,
+    "population": 6,
+    "parents": 3,
+    "sigma0": 0.06,
+    "regression_penalty_weight": 3.0,
+    "imbalance_penalty_weight": 0.45,
+    "drift_penalty_weight": 80.0
+  },
+  "history": [
+    {
+      "generation": 1,
+      "gen_best_objective": 14941.9506863902,
+      "gen_best_avg": 14942.0,
+      "global_best_objective": 14942.0,
+      "global_best_avg": 14942.0,
+      "sigma": 0.0528544542377222
+    },
+    {
+      "generation": 2,
+      "gen_best_objective": 14941.866254211553,
+      "gen_best_avg": 14942.0,
+      "global_best_objective": 14942.0,
+      "global_best_avg": 14942.0,
+      "sigma": 0.04811063999173781
+    },
+    {
+      "generation": 3,
+      "gen_best_objective": 14941.82963807511,
+      "gen_best_avg": 14942.0,
+      "global_best_objective": 14942.0,
+      "global_best_avg": 14942.0,
+      "sigma": 0.043551402795522116
+    },
+    {
+      "generation": 4,
+      "gen_best_objective": 14941.837702540104,
+      "gen_best_avg": 14942.0,
+      "global_best_objective": 14942.0,
+      "global_best_avg": 14942.0,
+      "sigma": 0.040445464819655996
+    },
+    {
+      "generation": 5,
+      "gen_best_objective": 14941.710027584433,
+      "gen_best_avg": 14942.0,
+      "global_best_objective": 14942.0,
+      "global_best_avg": 14942.0,
+      "sigma": 0.040051126071097023
+    }
+  ]
+}

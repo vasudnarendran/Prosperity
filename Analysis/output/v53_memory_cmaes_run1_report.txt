@@ -1,0 +1,40 @@
+V53 Memory Focused CMA-ES Report
+================================
+
+Bot source: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv53.py
+Backtester: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Backtest_failed_Python/run_backtest.py
+Total evaluations: 52
+
+Baselines
+---------
+Day -1 baseline: 15081.00
+Day -2 baseline: 14803.00
+Avg baseline:    14942.00
+
+Best Candidate
+--------------
+Day -1:      15079.00
+Day -2:      14803.00
+Avg:         14941.00
+Objective:   14934.10
+Reg penalty: 6.00
+Imb penalty: 0.90
+Drift pen.:  0.00
+
+Parameter Changes
+-----------------
+Parameter                      Default        Best    Delta %
+--------------------------------------------------------------
+SIGNAL_MEMORY_DECAY            0.78000     0.78000     +0.00%
+FORECAST_MEMORY_DECAY          0.84000     0.84000     +0.00%
+CONFIDENCE_AGREE_WEIGHT        0.60000     0.60000     +0.00%
+TAKE_CONFIDENCE_SCALE          0.18000     0.18000     +0.00%
+QUOTE_CONFIDENCE_SCALE         0.22000     0.22000     +0.00%
+
+Generation History
+------------------
+ Gen      Gen Obj      Gen Avg     Best Obj     Best Avg    Sigma
+   1     14934.03     14941.00     14934.10     14941.00  0.05299
+   2     14933.93     14941.00     14934.10     14941.00  0.05034
+   3     14934.04     14941.00     14934.10     14941.00  0.04384
+   4     14934.04     14941.00     14934.10     14941.00  0.04023

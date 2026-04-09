@@ -1,0 +1,49 @@
+V51 Regularized CMA-ES Report
+==============================
+
+Bot source: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv51.py
+Backtester: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Backtest_failed_Python/run_backtest.py
+Total evaluations: 40
+
+Baselines
+---------
+Day -1 baseline: 14868.00
+Day -2 baseline: 14620.50
+Avg baseline:    14744.25
+
+Best Candidate
+--------------
+Day -1:      15081.00
+Day -2:      14803.00
+Avg:         14942.00
+Objective:   14930.45
+Reg penalty: 0.00
+Imb penalty: 10.67
+Drift pen.:  0.88
+
+Parameter Changes
+-----------------
+Parameter                      Default        Best    Delta %
+--------------------------------------------------------------
+GAMMA_RANGE                    0.69283     0.92599    +33.65%
+RESERVATION_SCALE              0.02000     0.01227    -38.66%
+RANGE_RESERVATION_BIAS         0.26486     0.23335    -11.90%
+SPREAD_VOL_COEF                0.10000     0.05000    -50.00%
+SPREAD_INV_COEF                1.10816     1.07109     -3.35%
+SPREAD_TIME_COEF               1.77912     2.01269    +13.13%
+BASE_TAKE_EDGE                 0.78000     0.58383    -25.15%
+ALPHA_EDGE_SCALE               1.41536     1.54817     +9.38%
+ALPHA_IMBALANCE_SCALE          0.70000     0.60122    -14.11%
+INVENTORY_SKEW                 0.00500     0.00617    +23.38%
+SOFT_LIMIT_RATIO               0.56829     0.55441     -2.44%
+PRESSURE_BIAS_SCALE            0.22000     0.26035    +18.34%
+BREAKOUT_FOLLOW_SCALE          0.18000     0.18817     +4.54%
+BREAKOUT_QUOTE_TIGHTEN         0.18000     0.12914    -28.25%
+BREAKOUT_HOLD_BONUS            0.12000     0.07008    -41.60%
+
+Generation History
+------------------
+ Gen      Gen Obj      Gen Avg     Best Obj     Best Avg    Sigma
+   1     14860.63     14864.00     14860.63     14864.00  0.09411
+   2     14930.45     14942.00     14930.45     14942.00  0.09236
+   3     14855.81     14892.50     14930.45     14942.00  0.09361

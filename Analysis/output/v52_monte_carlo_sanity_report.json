@@ -1,0 +1,80 @@
+{
+  "config": {
+    "seed": 52,
+    "days": [
+      -1,
+      -2
+    ],
+    "samples_per_family": 1,
+    "families": [
+      {
+        "name": "original_noise",
+        "description": "Original historical path with mild execution-noise perturbations.",
+        "path_mode": "original",
+        "block_steps_min": 0,
+        "block_steps_max": 0,
+        "passive_fill_prob_range": [
+          0.9,
+          1.0
+        ],
+        "passive_qty_scale_range": [
+          0.9,
+          1.0
+        ],
+        "aggressive_slip_prob_range": [
+          0.0,
+          0.05
+        ],
+        "aggressive_slip_ticks_range": [
+          1,
+          1
+        ]
+      }
+    ],
+    "bots": [
+      "/Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv52.py"
+    ]
+  },
+  "baseline": {
+    "Traderv52": {
+      "per_day": {
+        "-1": 15081.0,
+        "-2": 14803.0
+      },
+      "combined_total_pnl": 29884.0
+    }
+  },
+  "monte_carlo": {
+    "Traderv52": {
+      "overall": {
+        "count": 1,
+        "mean": 28337.5,
+        "std": 0.0,
+        "min": 28337.5,
+        "p10": 28337.5,
+        "p25": 28337.5,
+        "median": 28337.5,
+        "p75": 28337.5,
+        "p90": 28337.5,
+        "max": 28337.5,
+        "cvar10": 28337.5
+      },
+      "by_family": {
+        "original_noise": {
+          "count": 1,
+          "mean": 28337.5,
+          "std": 0.0,
+          "min": 28337.5,
+          "p10": 28337.5,
+          "p25": 28337.5,
+          "median": 28337.5,
+          "p75": 28337.5,
+          "p90": 28337.5,
+          "max": 28337.5,
+          "cvar10": 28337.5
+        }
+      }
+    }
+  },
+  "comparison": null
+}

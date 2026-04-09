@@ -1,0 +1,50 @@
+{
+  "params": {
+    "GAMMA_RANGE": 0.8312257761700688,
+    "RESERVATION_SCALE": 0.008783399324053788,
+    "RANGE_RESERVATION_BIAS": 0.23441069192127428,
+    "SPREAD_VOL_COEF": 0.11458012870204132,
+    "SPREAD_INV_COEF": 1.1902075275348252,
+    "SPREAD_TIME_COEF": 1.8705410601649155,
+    "BASE_TAKE_EDGE": 0.6501826313060315,
+    "ALPHA_EDGE_SCALE": 1.6148986535111063,
+    "ALPHA_IMBALANCE_SCALE": 0.6373743973979068,
+    "INVENTORY_SKEW": 0.005876933347096736,
+    "SOFT_LIMIT_RATIO": 0.6130112960038581,
+    "PRESSURE_BIAS_SCALE": 0.20755481133417808,
+    "BREAKOUT_FOLLOW_SCALE": 0.19519243483876342,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.14152160522186996,
+    "BREAKOUT_HOLD_BONUS": 0.11805197051832592
+  },
+  "meta": {
+    "day_neg1": 14992.0,
+    "day_neg2": 14736.0,
+    "avg": 14864.0,
+    "objective": 14860.6258,
+    "regression_penalty": 0.0,
+    "imbalance_penalty": 2.975,
+    "drift_penalty": 0.3992,
+    "baseline_day_neg1": 14868.0,
+    "baseline_day_neg2": 14620.5,
+    "baseline_avg": 14744.25,
+    "total_evaluations": 12,
+    "seed": 51,
+    "max_iter": 1,
+    "population": 4,
+    "parents": 2,
+    "sigma0": 0.1,
+    "regression_penalty_weight": 2.5,
+    "imbalance_penalty_weight": 0.35,
+    "drift_penalty_weight": 40.0
+  },
+  "history": [
+    {
+      "generation": 1,
+      "gen_best_objective": 14860.625797205521,
+      "gen_best_avg": 14864.0,
+      "global_best_objective": 14860.625797205521,
+      "global_best_avg": 14864.0,
+      "sigma": 0.0940694108404308
+    }
+  ]
+}

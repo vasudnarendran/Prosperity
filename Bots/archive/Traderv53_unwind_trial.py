@@ -33,8 +33,8 @@ DEFAULT_TOMATOES_PARAMS = {
     "REGRESSION_WEIGHT": 0.20,
     "RESIDUAL_REVERT_WEIGHT": 0.12,
     "IMBALANCE_WEIGHT": 0.35,
-    "INVENTORY_SKEW": 0.005,
-    "BASE_TAKE_EDGE": 0.78,
+    "INVENTORY_SKEW": 0.0061691989,
+    "BASE_TAKE_EDGE": 0.58383306,
     "BASE_QUOTE_EDGE": 2.68,
     "MAX_QUOTE_EDGE": 9.0,
     "PASSIVE_SIZE": 8,
@@ -47,7 +47,7 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_IMBALANCE_THRESHOLD": 0.12,
     "TOXIC_SPREAD_THRESHOLD": 15.0,
     "TOXIC_VOLATILITY_THRESHOLD": 3.2,
-    "SOFT_LIMIT_RATIO": 0.56828726,
+    "SOFT_LIMIT_RATIO": 0.55441406,
     "POSITION_BIAS_DIVISOR": 12.0,
     "TREND_FAIR_BONUS": 0.25,
     "TREND_ENTRY_TAKE_BONUS": 3.0,
@@ -57,17 +57,17 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_PASSIVE_SIZE_BONUS": 2.0,
     "VOL_CONTROL_WINDOW": 8,
     "TIME_HORIZON_TICKS": 10000.0,
-    "GAMMA_RANGE": 0.69283327,
+    "GAMMA_RANGE": 0.9259926,
     "GAMMA_TREND": 0.10,
     "GAMMA_VOLATILE": 0.40,
-    "RESERVATION_SCALE": 0.02,
-    "SPREAD_VOL_COEF": 0.1,
-    "SPREAD_INV_COEF": 1.1081637,
-    "SPREAD_TIME_COEF": 1.7791177,
+    "RESERVATION_SCALE": 0.01226798,
+    "SPREAD_VOL_COEF": 0.05,
+    "SPREAD_INV_COEF": 1.0710913,
+    "SPREAD_TIME_COEF": 2.0126903,
     "TREND_RESERVATION_BIAS": 0.04,
-    "RANGE_RESERVATION_BIAS": 0.26486122,
-    "ALPHA_EDGE_SCALE": 1.4153631,
-    "ALPHA_IMBALANCE_SCALE": 0.7,
+    "RANGE_RESERVATION_BIAS": 0.23334699,
+    "ALPHA_EDGE_SCALE": 1.5481717,
+    "ALPHA_IMBALANCE_SCALE": 0.60122389,
     "ALPHA_THRESHOLD_SCALE": 1.03,
     "TREND_SELL_HOLD_EXTRA": 0.24,
     "TREND_BUY_TAKE_EXTRA": 0.08,
@@ -93,10 +93,10 @@ DEFAULT_TOMATOES_PARAMS = {
     "BURST_CONFIRM_IMBALANCE": 0.10,
     "PRESSURE_MEMORY_DECAY": 0.82,
     "PRESSURE_PRICE_BUCKET": 2.0,
-    "PRESSURE_BIAS_SCALE": 0.22,
-    "BREAKOUT_FOLLOW_SCALE": 0.18,
-    "BREAKOUT_QUOTE_TIGHTEN": 0.18,
-    "BREAKOUT_HOLD_BONUS": 0.12,
+    "PRESSURE_BIAS_SCALE": 0.26034513,
+    "BREAKOUT_FOLLOW_SCALE": 0.18817487,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.12914319,
+    "BREAKOUT_HOLD_BONUS": 0.070081701,
     "BOOK_ACTIVITY_FLOOR": 0.60,
     "BOOK_STEP_WEIGHT": 0.85,
     "BOOK_DEPLETION_WEIGHT": 0.65,
@@ -105,6 +105,14 @@ DEFAULT_TOMATOES_PARAMS = {
     "MID_DRIFT_WEIGHT": 0.25,
     "SPREAD_COMPRESSION_WEIGHT": 0.35,
     "PERSISTENCE_WEIGHT": 0.35,
+    "UNWIND_GAP_TRIGGER": 16.0,
+    "UNWIND_URGENCY_START": 0.18,
+    "UNWIND_WEAK_EDGE": 0.85,
+    "UNWIND_WEAK_BREAKOUT": 0.70,
+    "UNWIND_PASSIVE_PUSH_MAX": 1.0,
+    "UNWIND_PASSIVE_SIZE_BONUS": 1.0,
+    "UNWIND_TAKE_EDGE_BONUS": 0.0,
+    "UNWIND_TAKE_CAP": 10,
 }
 
 
@@ -1184,10 +1192,67 @@ class TomatoesTrader(BaseProductTrader):
             return self.BREAKOUT_HOLD_BONUS * min(2.0, abs(breakout_score))
         return 0.0
 
+    def weak_unwind_state(
+        self,
+        regime: str,
+        predicted_edge: float,
+        breakout_score: float,
+    ) -> bool:
+        return (
+            regime == "range"
+            or (
+                abs(predicted_edge) <= self.UNWIND_WEAK_EDGE
+                and abs(breakout_score) <= self.UNWIND_WEAK_BREAKOUT
+            )
+        )
+
+    def unwind_urgency(
+        self,
+        side: str,
+        target_position: int,
+        regime: str,
+        predicted_edge: float,
+        breakout_score: float,
+        weak_only: bool = False,
+    ) -> float:
+        if weak_only and not self.weak_unwind_state(regime, predicted_edge, breakout_score):
+            return 0.0
+
+        position = self.projected_position()
+        directional_gap = (position - target_position) if side == "SELL" else (target_position - position)
+        if directional_gap <= self.UNWIND_GAP_TRIGGER:
+            return 0.0
+
+        tau = self.time_fraction_remaining()
+        if tau >= self.UNWIND_URGENCY_START:
+            return 0.0
+
+        gap_ratio = min(
+            1.0,
+            (directional_gap - self.UNWIND_GAP_TRIGGER)
+            / max(1.0, self.position_limit - self.UNWIND_GAP_TRIGGER),
+        )
+        time_ratio = min(
+            1.0,
+            (self.UNWIND_URGENCY_START - tau) / max(1e-9, self.UNWIND_URGENCY_START),
+        )
+        urgency = gap_ratio * time_ratio
+
+        if not weak_only and not self.weak_unwind_state(regime, predicted_edge, breakout_score):
+            urgency *= 0.35
+
+        if side == "SELL" and predicted_edge >= self.TREND_EDGE_THRESHOLD and breakout_score > 0:
+            urgency *= 0.40
+        if side == "BUY" and predicted_edge <= -self.TREND_EDGE_THRESHOLD and breakout_score < 0:
+            urgency *= 0.40
+
+        return max(0.0, min(1.0, urgency))
+
     def hold_adjusted_take_threshold(
         self,
         side: str,
         adjusted_fair: float,
+        target_position: int,
         regime: str,
         predicted_edge: float,
         fit_quality: float,
@@ -1213,6 +1278,19 @@ class TomatoesTrader(BaseProductTrader):
         else:
             threshold += hold_time_adjustment
             threshold += hold_vol_adjustment
+        unwind_urgency = self.unwind_urgency(
+            side,
+            target_position,
+            regime,
+            predicted_edge,
+            breakout_score,
+            weak_only=True,
+        )
+        if unwind_urgency > 0.0:
+            if side == "BUY":
+                threshold += self.UNWIND_TAKE_EDGE_BONUS * unwind_urgency
+            else:
+                threshold -= self.UNWIND_TAKE_EDGE_BONUS * unwind_urgency
         return threshold
 
     def aggressive_take_quantity(
@@ -1379,6 +1457,44 @@ class TomatoesTrader(BaseProductTrader):
             if buy_quote is not None and position < 0:
                 buy_quote -= breakout_shift
 
+        sell_unwind_urgency = self.unwind_urgency(
+            "SELL",
+            target_position,
+            regime,
+            predicted_edge,
+            breakout_score,
+        )
+        if sell_quote is not None and position > target_position and sell_unwind_urgency > 0.0:
+            shift = int(
+                round(
+                    min(
+                        self.UNWIND_PASSIVE_PUSH_MAX,
+                        self.UNWIND_PASSIVE_PUSH_MAX * sell_unwind_urgency,
+                    )
+                )
+            )
+            if shift > 0:
+                sell_quote = max(int(self.best_bid) + 1, sell_quote - shift)
+
+        buy_unwind_urgency = self.unwind_urgency(
+            "BUY",
+            target_position,
+            regime,
+            predicted_edge,
+            breakout_score,
+        )
+        if buy_quote is not None and position < target_position and buy_unwind_urgency > 0.0:
+            shift = int(
+                round(
+                    min(
+                        self.UNWIND_PASSIVE_PUSH_MAX,
+                        self.UNWIND_PASSIVE_PUSH_MAX * buy_unwind_urgency,
+                    )
+                )
+            )
+            if shift > 0:
+                buy_quote = min(int(self.best_ask) - 1, buy_quote + shift)
+
         return self.clamp_inside_spread(buy_quote, sell_quote)
 
     def passive_size(self, side: str, regime: str, volatility: float) -> int:
@@ -1433,6 +1549,7 @@ class TomatoesTrader(BaseProductTrader):
         buy_threshold = self.hold_adjusted_take_threshold(
             "BUY",
             adjusted_fair,
+            target_position,
             regime,
             predicted_edge,
             fit_quality,
@@ -1457,6 +1574,16 @@ class TomatoesTrader(BaseProductTrader):
                     take_limit,
                     self.best_ask_volume,
                 )
+                buy_unwind_urgency = self.unwind_urgency(
+                    "BUY",
+                    target_position,
+                    regime,
+                    predicted_edge,
+                    breakout_score,
+                    weak_only=True,
+                )
+                if buy_unwind_urgency > 0.0 and position_before < target_position:
+                    quantity = min(quantity, int(self.UNWIND_TAKE_CAP))
                 before = self.buy_capacity
                 self.add_buy(int(self.best_ask), quantity)
                 took_buy = self.buy_capacity < before
@@ -1464,6 +1591,7 @@ class TomatoesTrader(BaseProductTrader):
         sell_threshold = self.hold_adjusted_take_threshold(
             "SELL",
             adjusted_fair,
+            target_position,
             regime,
             predicted_edge,
             fit_quality,
@@ -1488,6 +1616,16 @@ class TomatoesTrader(BaseProductTrader):
                     take_limit,
                     self.best_bid_volume,
                 )
+                sell_unwind_urgency = self.unwind_urgency(
+                    "SELL",
+                    target_position,
+                    regime,
+                    predicted_edge,
+                    breakout_score,
+                    weak_only=True,
+                )
+                if sell_unwind_urgency > 0.0 and position_before > target_position:
+                    quantity = min(quantity, int(self.UNWIND_TAKE_CAP))
                 before = self.sell_capacity
                 self.add_sell(int(self.best_bid), quantity)
                 took_sell = self.sell_capacity < before
@@ -1530,6 +1668,18 @@ class TomatoesTrader(BaseProductTrader):
                 quantity = min(self.passive_size("BUY", snapshot.regime, snapshot.volatility), self.buy_capacity)
                 if snapshot.regime != "range":
                     quantity = min(quantity, max(1, snapshot.target_position - position))
+                buy_unwind_urgency = self.unwind_urgency(
+                    "BUY",
+                    snapshot.target_position,
+                    snapshot.regime,
+                    snapshot.predicted_edge,
+                    snapshot.breakout_score,
+                )
+                if buy_unwind_urgency > 0.0 and position < snapshot.target_position:
+                    quantity = min(
+                        self.buy_capacity,
+                        quantity + int(round(self.UNWIND_PASSIVE_SIZE_BONUS * buy_unwind_urgency)),
+                    )
                 self.add_buy(buy_quote, quantity)
 
         position = self.projected_position()
@@ -1543,6 +1693,18 @@ class TomatoesTrader(BaseProductTrader):
                 quantity = min(self.passive_size("SELL", snapshot.regime, snapshot.volatility), self.sell_capacity)
                 if snapshot.regime != "range":
                     quantity = min(quantity, max(1, position - snapshot.target_position))
+                sell_unwind_urgency = self.unwind_urgency(
+                    "SELL",
+                    snapshot.target_position,
+                    snapshot.regime,
+                    snapshot.predicted_edge,
+                    snapshot.breakout_score,
+                )
+                if sell_unwind_urgency > 0.0 and position > snapshot.target_position:
+                    quantity = min(
+                        self.sell_capacity,
+                        quantity + int(round(self.UNWIND_PASSIVE_SIZE_BONUS * sell_unwind_urgency)),
+                    )
                 self.add_sell(sell_quote, quantity)
 
         self.store_flow_metrics(flow_metrics)

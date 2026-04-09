@@ -1,0 +1,301 @@
+{
+  "config": {
+    "seed": 52,
+    "days": [
+      -1,
+      -2
+    ],
+    "samples_per_family": 3,
+    "families": [
+      {
+        "name": "original_noise",
+        "description": "Original historical path with mild execution-noise perturbations.",
+        "path_mode": "original",
+        "block_steps_min": 0,
+        "block_steps_max": 0,
+        "passive_fill_prob_range": [
+          0.9,
+          1.0
+        ],
+        "passive_qty_scale_range": [
+          0.9,
+          1.0
+        ],
+        "aggressive_slip_prob_range": [
+          0.0,
+          0.05
+        ],
+        "aggressive_slip_ticks_range": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "bootstrap_path",
+        "description": "Block-bootstrap of the historical path with no fill perturbation.",
+        "path_mode": "bootstrap",
+        "block_steps_min": 160,
+        "block_steps_max": 520,
+        "passive_fill_prob_range": [
+          1.0,
+          1.0
+        ],
+        "passive_qty_scale_range": [
+          1.0,
+          1.0
+        ],
+        "aggressive_slip_prob_range": [
+          0.0,
+          0.0
+        ],
+        "aggressive_slip_ticks_range": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "bootstrap_balanced",
+        "description": "Block-bootstrap with moderate passive-fill degradation and mild aggressive slippage.",
+        "path_mode": "bootstrap",
+        "block_steps_min": 120,
+        "block_steps_max": 420,
+        "passive_fill_prob_range": [
+          0.75,
+          0.95
+        ],
+        "passive_qty_scale_range": [
+          0.75,
+          0.95
+        ],
+        "aggressive_slip_prob_range": [
+          0.02,
+          0.12
+        ],
+        "aggressive_slip_ticks_range": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "bootstrap_stress",
+        "description": "Block-bootstrap with stressed execution assumptions.",
+        "path_mode": "bootstrap",
+        "block_steps_min": 80,
+        "block_steps_max": 260,
+        "passive_fill_prob_range": [
+          0.55,
+          0.85
+        ],
+        "passive_qty_scale_range": [
+          0.55,
+          0.85
+        ],
+        "aggressive_slip_prob_range": [
+          0.05,
+          0.2
+        ],
+        "aggressive_slip_ticks_range": [
+          1,
+          2
+        ]
+      }
+    ],
+    "bots": [
+      "/Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv52.py",
+      "/Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv51.py"
+    ]
+  },
+  "baseline": {
+    "Traderv52": {
+      "per_day": {
+        "-1": 15081.0,
+        "-2": 14803.0
+      },
+      "combined_total_pnl": 29884.0
+    },
+    "Traderv51": {
+      "per_day": {
+        "-1": 14868.0,
+        "-2": 14620.5
+      },
+      "combined_total_pnl": 29488.5
+    }
+  },
+  "monte_carlo": {
+    "Traderv52": {
+      "overall": {
+        "count": 12,
+        "mean": 22757.4167,
+        "std": 5688.8054,
+        "min": 13530.0,
+        "p10": 14198.2,
+        "p25": 18658.375,
+        "median": 24106.75,
+        "p75": 27200.375,
+        "p90": 28227.95,
+        "max": 31179.5,
+        "cvar10": 13774.0
+      },
+      "by_family": {
+        "original_noise": {
+          "count": 3,
+          "mean": 27176.6667,
+          "std": 975.5831,
+          "min": 25950.5,
+          "p10": 26208.8,
+          "p25": 26596.25,
+          "median": 27242.0,
+          "p75": 27789.75,
+          "p90": 28118.4,
+          "max": 28337.5,
+          "cvar10": 25950.5
+        },
+        "bootstrap_path": {
+          "count": 3,
+          "mean": 28315.5,
+          "std": 2040.2093,
+          "min": 26580.5,
+          "p10": 26701.7,
+          "p25": 26883.5,
+          "median": 27186.5,
+          "p75": 29183.0,
+          "p90": 30380.9,
+          "max": 31179.5,
+          "cvar10": 26580.5
+        },
+        "bootstrap_balanced": {
+          "count": 3,
+          "mean": 21081.5,
+          "std": 1105.2589,
+          "min": 19604.5,
+          "p10": 19959.0,
+          "p25": 20490.75,
+          "median": 21377.0,
+          "p75": 21820.0,
+          "p90": 22085.8,
+          "max": 22263.0,
+          "cvar10": 19604.5
+        },
+        "bootstrap_stress": {
+          "count": 3,
+          "mean": 14456.0,
+          "std": 984.8546,
+          "min": 13530.0,
+          "p10": 13627.6,
+          "p25": 13774.0,
+          "median": 14018.0,
+          "p75": 14919.0,
+          "p90": 15459.6,
+          "max": 15820.0,
+          "cvar10": 13530.0
+        }
+      }
+    },
+    "Traderv51": {
+      "overall": {
+        "count": 12,
+        "mean": 22925.9583,
+        "std": 5465.4519,
+        "min": 13365.0,
+        "p10": 14477.35,
+        "p25": 19756.0,
+        "median": 24294.0,
+        "p75": 26868.125,
+        "p90": 27346.85,
+        "max": 31640.5,
+        "cvar10": 13758.0
+      },
+      "by_family": {
+        "original_noise": {
+          "count": 3,
+          "mean": 26990.5,
+          "std": 371.6896,
+          "min": 26487.0,
+          "p10": 26611.9,
+          "p25": 26799.25,
+          "median": 27111.5,
+          "p75": 27242.25,
+          "p90": 27320.7,
+          "max": 27373.0,
+          "cvar10": 26487.0
+        },
+        "bootstrap_path": {
+          "count": 3,
+          "mean": 28231.1667,
+          "std": 2420.1275,
+          "min": 26266.0,
+          "p10": 26370.2,
+          "p25": 26526.5,
+          "median": 26787.0,
+          "p75": 29213.75,
+          "p90": 30669.8,
+          "max": 31640.5,
+          "cvar10": 26266.0
+        },
+        "bootstrap_balanced": {
+          "count": 3,
+          "mean": 21505.3333,
+          "std": 736.8259,
+          "min": 20536.5,
+          "p10": 20760.7,
+          "p25": 21097.0,
+          "median": 21657.5,
+          "p75": 21989.75,
+          "p90": 22189.1,
+          "max": 22322.0,
+          "cvar10": 20536.5
+        },
+        "bootstrap_stress": {
+          "count": 3,
+          "mean": 14976.8333,
+          "std": 1753.3041,
+          "min": 13365.0,
+          "p10": 13522.2,
+          "p25": 13758.0,
+          "median": 14151.0,
+          "p75": 15782.75,
+          "p90": 16761.8,
+          "max": 17414.5,
+          "cvar10": 13365.0
+        }
+      }
+    }
+  },
+  "comparison": {
+    "primary_bot": "Traderv52",
+    "compare_bot": "Traderv51",
+    "shared_samples": 12,
+    "summary": {
+      "mean_delta": -168.5417,
+      "median_delta": -1.25,
+      "p10_delta": -943.7,
+      "win_rate": 0.5
+    },
+    "by_family": {
+      "bootstrap_balanced": {
+        "samples": 3,
+        "mean_delta": -423.8333,
+        "win_rate": 0.3333,
+        "p10_delta": -942.4
+      },
+      "bootstrap_path": {
+        "samples": 3,
+        "mean_delta": 84.3333,
+        "win_rate": 0.6667,
+        "p10_delta": -305.9
+      },
+      "bootstrap_stress": {
+        "samples": 3,
+        "mean_delta": -520.8333,
+        "win_rate": 0.3333,
+        "p10_delta": -1302.2
+      },
+      "original_noise": {
+        "samples": 3,
+        "mean_delta": 186.1667,
+        "win_rate": 0.6667,
+        "p10_delta": -403.1
+      }
+    }
+  }
+}

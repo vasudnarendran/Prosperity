@@ -33,8 +33,8 @@ DEFAULT_TOMATOES_PARAMS = {
     "REGRESSION_WEIGHT": 0.20,
     "RESIDUAL_REVERT_WEIGHT": 0.12,
     "IMBALANCE_WEIGHT": 0.35,
-    "INVENTORY_SKEW": 0.005,
-    "BASE_TAKE_EDGE": 0.78,
+    "INVENTORY_SKEW": 0.0061691989,
+    "BASE_TAKE_EDGE": 0.58383306,
     "BASE_QUOTE_EDGE": 2.68,
     "MAX_QUOTE_EDGE": 9.0,
     "PASSIVE_SIZE": 8,
@@ -47,7 +47,7 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_IMBALANCE_THRESHOLD": 0.12,
     "TOXIC_SPREAD_THRESHOLD": 15.0,
     "TOXIC_VOLATILITY_THRESHOLD": 3.2,
-    "SOFT_LIMIT_RATIO": 0.56828726,
+    "SOFT_LIMIT_RATIO": 0.55441406,
     "POSITION_BIAS_DIVISOR": 12.0,
     "TREND_FAIR_BONUS": 0.25,
     "TREND_ENTRY_TAKE_BONUS": 3.0,
@@ -57,17 +57,17 @@ DEFAULT_TOMATOES_PARAMS = {
     "TREND_PASSIVE_SIZE_BONUS": 2.0,
     "VOL_CONTROL_WINDOW": 8,
     "TIME_HORIZON_TICKS": 10000.0,
-    "GAMMA_RANGE": 0.69283327,
+    "GAMMA_RANGE": 0.9259926,
     "GAMMA_TREND": 0.10,
     "GAMMA_VOLATILE": 0.40,
-    "RESERVATION_SCALE": 0.02,
-    "SPREAD_VOL_COEF": 0.1,
-    "SPREAD_INV_COEF": 1.1081637,
-    "SPREAD_TIME_COEF": 1.7791177,
+    "RESERVATION_SCALE": 0.01226798,
+    "SPREAD_VOL_COEF": 0.05,
+    "SPREAD_INV_COEF": 1.0710913,
+    "SPREAD_TIME_COEF": 2.0126903,
     "TREND_RESERVATION_BIAS": 0.04,
-    "RANGE_RESERVATION_BIAS": 0.26486122,
-    "ALPHA_EDGE_SCALE": 1.4153631,
-    "ALPHA_IMBALANCE_SCALE": 0.7,
+    "RANGE_RESERVATION_BIAS": 0.23334699,
+    "ALPHA_EDGE_SCALE": 1.5481717,
+    "ALPHA_IMBALANCE_SCALE": 0.60122389,
     "ALPHA_THRESHOLD_SCALE": 1.03,
     "TREND_SELL_HOLD_EXTRA": 0.24,
     "TREND_BUY_TAKE_EXTRA": 0.08,
@@ -93,10 +93,10 @@ DEFAULT_TOMATOES_PARAMS = {
     "BURST_CONFIRM_IMBALANCE": 0.10,
     "PRESSURE_MEMORY_DECAY": 0.82,
     "PRESSURE_PRICE_BUCKET": 2.0,
-    "PRESSURE_BIAS_SCALE": 0.22,
-    "BREAKOUT_FOLLOW_SCALE": 0.18,
-    "BREAKOUT_QUOTE_TIGHTEN": 0.18,
-    "BREAKOUT_HOLD_BONUS": 0.12,
+    "PRESSURE_BIAS_SCALE": 0.26034513,
+    "BREAKOUT_FOLLOW_SCALE": 0.18817487,
+    "BREAKOUT_QUOTE_TIGHTEN": 0.12914319,
+    "BREAKOUT_HOLD_BONUS": 0.070081701,
     "BOOK_ACTIVITY_FLOOR": 0.60,
     "BOOK_STEP_WEIGHT": 0.85,
     "BOOK_DEPLETION_WEIGHT": 0.65,
@@ -105,6 +105,13 @@ DEFAULT_TOMATOES_PARAMS = {
     "MID_DRIFT_WEIGHT": 0.25,
     "SPREAD_COMPRESSION_WEIGHT": 0.35,
     "PERSISTENCE_WEIGHT": 0.35,
+    "EXEC_WEAK_SPREAD": 13.0,
+    "EXEC_WEAK_VOL": 2.3,
+    "EXEC_WEAK_FIT": 0.36,
+    "EXEC_WEAK_EDGE": 1.10,
+    "EXEC_QUOTE_WIDEN": 0.40,
+    "EXEC_PASSIVE_SIZE_CUT": 2.0,
+    "EXEC_TAKE_EDGE_PENALTY": 0.10,
 }
 
 
@@ -122,6 +129,7 @@ class SignalSnapshot:
     regime: str
     target_position: int
     adjusted_fair: float
+    execution_weakness: float
 
 
 class BaseProductTrader:
@@ -1146,6 +1154,14 @@ class TomatoesTrader(BaseProductTrader):
             hybrid_alpha,
             pressure_bias,
         ) - self.reservation_adjustment(regime, target_position, predicted_edge, volatility)
+        execution_weakness = self.execution_weakness(
+            regime,
+            predicted_edge,
+            fit_quality,
+            volatility,
+            breakout_score,
+            flow_metrics["bias"],
+        )
 
         snapshot = SignalSnapshot(
             predicted_now=predicted_now,
@@ -1160,8 +1176,35 @@ class TomatoesTrader(BaseProductTrader):
             regime=regime,
             target_position=target_position,
             adjusted_fair=adjusted_fair,
+            execution_weakness=execution_weakness,
         )
         return snapshot, flow_metrics
+
+    def execution_weakness(
+        self,
+        regime: str,
+        predicted_edge: float,
+        fit_quality: float,
+        volatility: float,
+        breakout_score: float,
+        flow_bias: float,
+    ) -> float:
+        weakness = 0.0
+
+        if float(self.spread) >= self.EXEC_WEAK_SPREAD:
+            weakness += 0.40
+        if volatility >= self.EXEC_WEAK_VOL:
+            weakness += 0.30 * min(1.0, (volatility - self.EXEC_WEAK_VOL + 1.0) / 1.5)
+        if fit_quality <= self.EXEC_WEAK_FIT:
+            weakness += 0.30 * min(1.0, (self.EXEC_WEAK_FIT - fit_quality + 0.10) / 0.25)
+        if regime == "volatile":
+            weakness += 0.35
+        if abs(predicted_edge) <= self.EXEC_WEAK_EDGE and abs(breakout_score) <= 0.75:
+            weakness += 0.18
+        if abs(flow_bias) <= 0.08:
+            weakness += 0.12
+
+        return max(0.0, min(1.0, weakness))
 
     def trend_hold_adjustment(self, side: str, regime: str, predicted_edge: float) -> float:
         adjustment = 0.0
@@ -1193,6 +1236,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        execution_weakness: float = 0.0,
     ) -> float:
         side_sign = -1.0 if side == "BUY" else 1.0
         threshold = adjusted_fair + side_sign * self.take_edge(
@@ -1202,6 +1246,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            execution_weakness,
         )
         threshold += self.trend_hold_adjustment(side, regime, predicted_edge)
         threshold += self.breakout_hold_adjustment(side, breakout_score)
@@ -1240,6 +1285,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        execution_weakness: float = 0.0,
     ) -> float:
         edge = self.BASE_TAKE_EDGE
 
@@ -1295,6 +1341,8 @@ class TomatoesTrader(BaseProductTrader):
             else:
                 edge += 0.12 * breakout_conviction
 
+        edge += self.EXEC_TAKE_EDGE_PENALTY * max(0.0, execution_weakness)
+
         return max(0.5, edge)
 
     def quote_edge(
@@ -1303,6 +1351,7 @@ class TomatoesTrader(BaseProductTrader):
         volatility: float,
         fit_quality: float,
         breakout_score: float = 0.0,
+        execution_weakness: float = 0.0,
     ) -> float:
         tau = self.time_fraction_remaining()
         gamma = self.control_gamma(regime)
@@ -1322,6 +1371,7 @@ class TomatoesTrader(BaseProductTrader):
         edge += self.SPREAD_TIME_COEF * gamma * tau
         if abs(breakout_score) >= 1.10 and regime in {"trend_up", "trend_down"}:
             edge -= min(0.90, self.BREAKOUT_QUOTE_TIGHTEN * 0.35 * abs(breakout_score))
+        edge += self.EXEC_QUOTE_WIDEN * max(0.0, execution_weakness)
         return min(self.MAX_QUOTE_EDGE, max(1.0, edge))
 
     def passive_quotes(
@@ -1333,8 +1383,15 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        execution_weakness: float = 0.0,
     ) -> Tuple[Optional[int], Optional[int]]:
-        quote_edge = self.quote_edge(regime, volatility, fit_quality, breakout_score)
+        quote_edge = self.quote_edge(
+            regime,
+            volatility,
+            fit_quality,
+            breakout_score,
+            execution_weakness,
+        )
         buy_quote = math.floor(adjusted_fair - quote_edge)
         sell_quote = math.ceil(adjusted_fair + quote_edge)
         buy_quote, sell_quote = self.clamp_inside_spread(buy_quote, sell_quote)
@@ -1381,7 +1438,7 @@ class TomatoesTrader(BaseProductTrader):
 
         return self.clamp_inside_spread(buy_quote, sell_quote)
 
-    def passive_size(self, side: str, regime: str, volatility: float) -> int:
+    def passive_size(self, side: str, regime: str, volatility: float, execution_weakness: float = 0.0) -> int:
         size = self.PASSIVE_SIZE
         if int(self.spread) >= 14:
             size += 1
@@ -1392,6 +1449,7 @@ class TomatoesTrader(BaseProductTrader):
             size = max(1, size + int(self.TREND_PASSIVE_SIZE_BONUS))
 
         size = max(1, int(size - self.toxicity(volatility)))
+        size = max(1, int(size - round(self.EXEC_PASSIVE_SIZE_CUT * max(0.0, execution_weakness))))
 
         position = self.projected_position()
         if side == "BUY":
@@ -1426,6 +1484,7 @@ class TomatoesTrader(BaseProductTrader):
         fit_quality: float,
         volatility: float,
         breakout_score: float = 0.0,
+        execution_weakness: float = 0.0,
     ) -> Tuple[bool, bool]:
         took_buy = False
         took_sell = False
@@ -1438,6 +1497,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            execution_weakness,
         )
 
         if (
@@ -1469,6 +1529,7 @@ class TomatoesTrader(BaseProductTrader):
             fit_quality,
             volatility,
             breakout_score,
+            execution_weakness,
         )
 
         if (
@@ -1507,6 +1568,7 @@ class TomatoesTrader(BaseProductTrader):
             snapshot.fit_quality,
             snapshot.volatility,
             snapshot.breakout_score,
+            snapshot.execution_weakness,
         )
 
         buy_quote, sell_quote = self.passive_quotes(
@@ -1517,6 +1579,7 @@ class TomatoesTrader(BaseProductTrader):
             snapshot.fit_quality,
             snapshot.volatility,
             snapshot.breakout_score,
+            snapshot.execution_weakness,
         )
         position = self.projected_position()
 
@@ -1527,7 +1590,15 @@ class TomatoesTrader(BaseProductTrader):
             and self.allow_passive("BUY", snapshot.regime)
         ):
             if snapshot.regime == "range" or position < snapshot.target_position:
-                quantity = min(self.passive_size("BUY", snapshot.regime, snapshot.volatility), self.buy_capacity)
+                quantity = min(
+                    self.passive_size(
+                        "BUY",
+                        snapshot.regime,
+                        snapshot.volatility,
+                        snapshot.execution_weakness,
+                    ),
+                    self.buy_capacity,
+                )
                 if snapshot.regime != "range":
                     quantity = min(quantity, max(1, snapshot.target_position - position))
                 self.add_buy(buy_quote, quantity)
@@ -1540,7 +1611,15 @@ class TomatoesTrader(BaseProductTrader):
             and self.allow_passive("SELL", snapshot.regime)
         ):
             if snapshot.regime == "range" or position > snapshot.target_position:
-                quantity = min(self.passive_size("SELL", snapshot.regime, snapshot.volatility), self.sell_capacity)
+                quantity = min(
+                    self.passive_size(
+                        "SELL",
+                        snapshot.regime,
+                        snapshot.volatility,
+                        snapshot.execution_weakness,
+                    ),
+                    self.sell_capacity,
+                )
                 if snapshot.regime != "range":
                     quantity = min(quantity, max(1, position - snapshot.target_position))
                 self.add_sell(sell_quote, quantity)

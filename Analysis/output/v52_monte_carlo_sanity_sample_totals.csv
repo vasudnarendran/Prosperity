@@ -1,0 +1,2 @@
+bot,family,sample_id,total_pnl,total_fills,path_mode,avg_block_steps,avg_passive_fill_prob,avg_passive_qty_scale,avg_aggressive_slip_prob,avg_aggressive_slip_ticks,day_-1_pnl,day_-2_pnl
+Traderv52,original_noise,original_noise_001,28337.5,1227,original,0.0,0.9548,0.99029,0.011636,1.0,13879.0,14458.5

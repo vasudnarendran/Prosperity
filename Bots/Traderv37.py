@@ -1,5 +1,4 @@
 from datamodel import OrderDepth, Order, TradingState
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 import json
 import math
@@ -106,22 +105,6 @@ DEFAULT_TOMATOES_PARAMS = {
     "SPREAD_COMPRESSION_WEIGHT": 0.35,
     "PERSISTENCE_WEIGHT": 0.35,
 }
-
-
-@dataclass(frozen=True)
-class SignalSnapshot:
-    predicted_now: float
-    predicted_next: float
-    fit_quality: float
-    volatility: float
-    regression_edge: float
-    pressure_bias: float
-    hybrid_alpha: float
-    breakout_score: float
-    predicted_edge: float
-    regime: str
-    target_position: int
-    adjusted_fair: float
 
 
 class BaseProductTrader:
@@ -1091,147 +1074,6 @@ class TomatoesTrader(BaseProductTrader):
         )
         return fair - (self.projected_position() * self.INVENTORY_SKEW)
 
-    def build_signal_snapshot(self) -> Tuple[SignalSnapshot, Dict[str, float]]:
-        predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
-        regression_edge = (predicted_next - float(self.mid)) * self.ALPHA_EDGE_SCALE
-
-        flow_metrics = self.market_flow_metrics()
-        burst_score = self.burst_score(flow_metrics)
-        pressure_bias = self.update_pressure_memory(flow_metrics)
-        breakout_score = self.breakout_score(
-            flow_metrics,
-            burst_score,
-            pressure_bias,
-            regression_edge,
-            fit_quality,
-        )
-        if breakout_score * regression_edge < 0:
-            breakout_score *= 0.35
-        if breakout_score * self.momentum < 0:
-            breakout_score *= 0.50
-        if pressure_bias * regression_edge < 0:
-            pressure_bias *= 0.60
-
-        _hybrid_fair, hybrid_alpha = self.hybrid_alpha()
-        provisional_edge = regression_edge + (self.BREAKOUT_FOLLOW_SCALE * breakout_score) + (0.20 * pressure_bias)
-        provisional_regime = self.classify_state(
-            provisional_edge,
-            fit_quality,
-            volatility,
-            breakout_score,
-            flow_metrics["bias"],
-        )
-        hybrid_alpha = self.guarded_hybrid_alpha(hybrid_alpha, regression_edge, provisional_regime)
-
-        predicted_edge = (
-            (1.0 - self.ALPHA_BLEND_WEIGHT) * regression_edge
-            + self.ALPHA_BLEND_WEIGHT * hybrid_alpha
-            + self.BREAKOUT_FOLLOW_SCALE * breakout_score
-            + (0.20 * pressure_bias)
-        )
-        predicted_next = float(self.mid) + predicted_edge
-        regime = self.classify_state(
-            predicted_edge,
-            fit_quality,
-            volatility,
-            breakout_score,
-            flow_metrics["bias"],
-        )
-        target_position = self.target_position(regime, predicted_edge, fit_quality, breakout_score)
-        adjusted_fair = self.adjusted_fair_value(
-            regime,
-            target_position,
-            predicted_now,
-            predicted_next,
-            hybrid_alpha,
-            pressure_bias,
-        ) - self.reservation_adjustment(regime, target_position, predicted_edge, volatility)
-
-        snapshot = SignalSnapshot(
-            predicted_now=predicted_now,
-            predicted_next=predicted_next,
-            fit_quality=fit_quality,
-            volatility=volatility,
-            regression_edge=regression_edge,
-            pressure_bias=pressure_bias,
-            hybrid_alpha=hybrid_alpha,
-            breakout_score=breakout_score,
-            predicted_edge=predicted_edge,
-            regime=regime,
-            target_position=target_position,
-            adjusted_fair=adjusted_fair,
-        )
-        return snapshot, flow_metrics
-
-    def trend_hold_adjustment(self, side: str, regime: str, predicted_edge: float) -> float:
-        adjustment = 0.0
-        if side == "BUY":
-            if regime == "trend_down" and predicted_edge <= -self.TREND_EDGE_THRESHOLD:
-                adjustment -= self.TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
-            if regime == "trend_down" and predicted_edge <= -self.STRONG_TREND_EDGE:
-                adjustment -= self.STRONG_TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
-        else:
-            if regime == "trend_up" and predicted_edge >= self.TREND_EDGE_THRESHOLD:
-                adjustment += self.TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
-            if regime == "trend_up" and predicted_edge >= self.STRONG_TREND_EDGE:
-                adjustment += self.STRONG_TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
-        return adjustment
-
-    def breakout_hold_adjustment(self, side: str, breakout_score: float) -> float:
-        if side == "BUY" and breakout_score <= -0.75:
-            return -self.BREAKOUT_HOLD_BONUS * min(2.0, abs(breakout_score))
-        if side == "SELL" and breakout_score >= 0.75:
-            return self.BREAKOUT_HOLD_BONUS * min(2.0, abs(breakout_score))
-        return 0.0
-
-    def hold_adjusted_take_threshold(
-        self,
-        side: str,
-        adjusted_fair: float,
-        regime: str,
-        predicted_edge: float,
-        fit_quality: float,
-        volatility: float,
-        breakout_score: float = 0.0,
-    ) -> float:
-        side_sign = -1.0 if side == "BUY" else 1.0
-        threshold = adjusted_fair + side_sign * self.take_edge(
-            side,
-            regime,
-            predicted_edge,
-            fit_quality,
-            volatility,
-            breakout_score,
-        )
-        threshold += self.trend_hold_adjustment(side, regime, predicted_edge)
-        threshold += self.breakout_hold_adjustment(side, breakout_score)
-        hold_time_adjustment = self.HOLD_TIME_COEF * self.time_fraction_remaining()
-        hold_vol_adjustment = self.HOLD_VOL_COEF * min(3.0, volatility)
-        if side == "BUY":
-            threshold -= hold_time_adjustment
-            threshold -= hold_vol_adjustment
-        else:
-            threshold += hold_time_adjustment
-            threshold += hold_vol_adjustment
-        return threshold
-
-    def aggressive_take_quantity(
-        self,
-        side: str,
-        regime: str,
-        target_position: int,
-        position_before: int,
-        take_limit: int,
-        top_volume: int,
-    ) -> int:
-        quantity = min(top_volume, take_limit)
-        if regime != "range":
-            if side == "BUY":
-                quantity = min(quantity, max(1, target_position - position_before))
-            else:
-                quantity = min(quantity, max(1, position_before - target_position))
-        return quantity
-
     def take_edge(
         self,
         side: str,
@@ -1430,64 +1272,66 @@ class TomatoesTrader(BaseProductTrader):
         took_buy = False
         took_sell = False
 
-        buy_threshold = self.hold_adjusted_take_threshold(
+        buy_threshold = adjusted_fair - self.take_edge(
             "BUY",
-            adjusted_fair,
             regime,
             predicted_edge,
             fit_quality,
             volatility,
             breakout_score,
         )
+        if regime == "trend_down" and predicted_edge <= -self.TREND_EDGE_THRESHOLD:
+            buy_threshold -= self.TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
+        if regime == "trend_down" and predicted_edge <= -self.STRONG_TREND_EDGE:
+            buy_threshold -= self.STRONG_TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
+        if breakout_score <= -0.75:
+            buy_threshold -= self.BREAKOUT_HOLD_BONUS * min(2.0, abs(breakout_score))
+        buy_threshold -= self.HOLD_TIME_COEF * self.time_fraction_remaining()
+        buy_threshold -= self.HOLD_VOL_COEF * min(3.0, volatility)
 
         if (
             int(self.best_ask) <= buy_threshold
             and self.buy_capacity > 0
         ):
             take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_up" else 0)
-            position_before = self.projected_position()
-            if regime != "range" and position_before >= target_position:
+            if regime != "range" and self.projected_position() >= target_position:
                 pass
             else:
-                quantity = self.aggressive_take_quantity(
-                    "BUY",
-                    regime,
-                    target_position,
-                    position_before,
-                    take_limit,
-                    self.best_ask_volume,
-                )
+                quantity = min(self.best_ask_volume, take_limit)
+                if regime != "range":
+                    quantity = min(quantity, max(1, target_position - self.projected_position()))
                 before = self.buy_capacity
                 self.add_buy(int(self.best_ask), quantity)
                 took_buy = self.buy_capacity < before
 
-        sell_threshold = self.hold_adjusted_take_threshold(
+        sell_threshold = adjusted_fair + self.take_edge(
             "SELL",
-            adjusted_fair,
             regime,
             predicted_edge,
             fit_quality,
             volatility,
             breakout_score,
         )
+        if regime == "trend_up" and predicted_edge >= self.TREND_EDGE_THRESHOLD:
+            sell_threshold += self.TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
+        if regime == "trend_up" and predicted_edge >= self.STRONG_TREND_EDGE:
+            sell_threshold += self.STRONG_TREND_HOLD_EXIT_BONUS + self.TREND_SELL_HOLD_EXTRA
+        if breakout_score >= 0.75:
+            sell_threshold += self.BREAKOUT_HOLD_BONUS * min(2.0, abs(breakout_score))
+        sell_threshold += self.HOLD_TIME_COEF * self.time_fraction_remaining()
+        sell_threshold += self.HOLD_VOL_COEF * min(3.0, volatility)
 
         if (
             int(self.best_bid) >= sell_threshold
             and self.sell_capacity > 0
         ):
             take_limit = self.MAX_TAKE_SIZE + (int(self.TREND_ENTRY_TAKE_BONUS) if regime == "trend_down" else 0)
-            position_before = self.projected_position()
-            if regime != "range" and position_before <= target_position:
+            if regime != "range" and self.projected_position() <= target_position:
                 pass
             else:
-                quantity = self.aggressive_take_quantity(
-                    "SELL",
-                    regime,
-                    target_position,
-                    position_before,
-                    take_limit,
-                    self.best_bid_volume,
-                )
+                quantity = min(self.best_bid_volume, take_limit)
+                if regime != "range":
+                    quantity = min(quantity, max(1, self.projected_position() - target_position))
                 before = self.sell_capacity
                 self.add_sell(int(self.best_bid), quantity)
                 took_sell = self.sell_capacity < before
@@ -1498,25 +1342,75 @@ class TomatoesTrader(BaseProductTrader):
         if not self.has_book():
             return self.orders
 
-        snapshot, flow_metrics = self.build_signal_snapshot()
+        predicted_now, predicted_next, fit_quality, volatility = self.regression_metrics()
+        regression_edge = (predicted_next - float(self.mid)) * self.ALPHA_EDGE_SCALE
+        flow_metrics = self.market_flow_metrics()
+        burst_score = self.burst_score(flow_metrics)
+        pressure_bias = self.update_pressure_memory(flow_metrics)
+        breakout_score = self.breakout_score(
+            flow_metrics,
+            burst_score,
+            pressure_bias,
+            regression_edge,
+            fit_quality,
+        )
+        if breakout_score * regression_edge < 0:
+            breakout_score *= 0.35
+        if breakout_score * self.momentum < 0:
+            breakout_score *= 0.50
+        if pressure_bias * regression_edge < 0:
+            pressure_bias *= 0.60
+        _hybrid_fair, hybrid_alpha = self.hybrid_alpha()
+        provisional_edge = regression_edge + (self.BREAKOUT_FOLLOW_SCALE * breakout_score) + (0.20 * pressure_bias)
+        provisional_regime = self.classify_state(
+            provisional_edge,
+            fit_quality,
+            volatility,
+            breakout_score,
+            flow_metrics["bias"],
+        )
+        hybrid_alpha = self.guarded_hybrid_alpha(hybrid_alpha, regression_edge, provisional_regime)
+        predicted_edge = (
+            (1.0 - self.ALPHA_BLEND_WEIGHT) * regression_edge
+            + self.ALPHA_BLEND_WEIGHT * hybrid_alpha
+            + self.BREAKOUT_FOLLOW_SCALE * breakout_score
+            + (0.20 * pressure_bias)
+        )
+        predicted_next = float(self.mid) + predicted_edge
+        regime = self.classify_state(
+            predicted_edge,
+            fit_quality,
+            volatility,
+            breakout_score,
+            flow_metrics["bias"],
+        )
+        target_position = self.target_position(regime, predicted_edge, fit_quality, breakout_score)
+        adjusted_fair = self.adjusted_fair_value(
+            regime,
+            target_position,
+            predicted_now,
+            predicted_next,
+            hybrid_alpha,
+            pressure_bias,
+        ) - self.reservation_adjustment(regime, target_position, predicted_edge, volatility)
         took_buy, took_sell = self.take_orders(
-            snapshot.regime,
-            snapshot.target_position,
-            snapshot.adjusted_fair,
-            snapshot.predicted_edge,
-            snapshot.fit_quality,
-            snapshot.volatility,
-            snapshot.breakout_score,
+            regime,
+            target_position,
+            adjusted_fair,
+            predicted_edge,
+            fit_quality,
+            volatility,
+            breakout_score,
         )
 
         buy_quote, sell_quote = self.passive_quotes(
-            snapshot.adjusted_fair,
-            snapshot.regime,
-            snapshot.target_position,
-            snapshot.predicted_edge,
-            snapshot.fit_quality,
-            snapshot.volatility,
-            snapshot.breakout_score,
+            adjusted_fair,
+            regime,
+            target_position,
+            predicted_edge,
+            fit_quality,
+            volatility,
+            breakout_score,
         )
         position = self.projected_position()
 
@@ -1524,12 +1418,12 @@ class TomatoesTrader(BaseProductTrader):
             not took_buy
             and buy_quote is not None
             and self.buy_capacity > 0
-            and self.allow_passive("BUY", snapshot.regime)
+            and self.allow_passive("BUY", regime)
         ):
-            if snapshot.regime == "range" or position < snapshot.target_position:
-                quantity = min(self.passive_size("BUY", snapshot.regime, snapshot.volatility), self.buy_capacity)
-                if snapshot.regime != "range":
-                    quantity = min(quantity, max(1, snapshot.target_position - position))
+            if regime == "range" or position < target_position:
+                quantity = min(self.passive_size("BUY", regime, volatility), self.buy_capacity)
+                if regime != "range":
+                    quantity = min(quantity, max(1, target_position - position))
                 self.add_buy(buy_quote, quantity)
 
         position = self.projected_position()
@@ -1537,12 +1431,12 @@ class TomatoesTrader(BaseProductTrader):
             not took_sell
             and sell_quote is not None
             and self.sell_capacity > 0
-            and self.allow_passive("SELL", snapshot.regime)
+            and self.allow_passive("SELL", regime)
         ):
-            if snapshot.regime == "range" or position > snapshot.target_position:
-                quantity = min(self.passive_size("SELL", snapshot.regime, snapshot.volatility), self.sell_capacity)
-                if snapshot.regime != "range":
-                    quantity = min(quantity, max(1, position - snapshot.target_position))
+            if regime == "range" or position > target_position:
+                quantity = min(self.passive_size("SELL", regime, volatility), self.sell_capacity)
+                if regime != "range":
+                    quantity = min(quantity, max(1, position - target_position))
                 self.add_sell(sell_quote, quantity)
 
         self.store_flow_metrics(flow_metrics)

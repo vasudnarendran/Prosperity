@@ -1,0 +1,3 @@
+bot,family,sample_id,day,total_pnl,total_fills,path_mode,block_steps,passive_fill_prob,passive_qty_scale,aggressive_slip_prob,aggressive_slip_ticks,EMERALDS_pnl,TOMATOES_pnl,EMERALDS_position,TOMATOES_position
+Traderv52,original_noise,original_noise_001,-1,13879.0,623,original,0,0.931401,0.987265,0.005872,1,6859.0,7020.0,-23,-6
+Traderv52,original_noise,original_noise_001,-2,14458.5,604,original,0,0.978199,0.993314,0.017401,1,6771.0,7687.5,-20,19

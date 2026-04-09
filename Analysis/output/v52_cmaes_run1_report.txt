@@ -1,0 +1,44 @@
+V52 Tight Regularized CMA-ES Report
+===================================
+
+Bot source: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Bots/Traderv52.py
+Backtester: /Users/vasudravinarendran/Documents/Prosperity/Prosperity/Backtest_failed_Python/run_backtest.py
+Total evaluations: 64
+
+Baselines
+---------
+Day -1 baseline: 15081.00
+Day -2 baseline: 14803.00
+Avg baseline:    14942.00
+
+Best Candidate
+--------------
+Day -1:      15081.00
+Day -2:      14803.00
+Avg:         14942.00
+Objective:   14942.00
+Reg penalty: 0.00
+Imb penalty: 0.00
+Drift pen.:  0.00
+
+Parameter Changes
+-----------------
+Parameter                      Default        Best    Delta %
+--------------------------------------------------------------
+SPREAD_INV_COEF                1.07109     1.07109     +0.00%
+RESERVATION_SCALE              0.01227     0.01227     +0.00%
+BASE_TAKE_EDGE                 0.58383     0.58383     +0.00%
+ALPHA_EDGE_SCALE               1.54817     1.54817     +0.00%
+ALPHA_IMBALANCE_SCALE          0.60122     0.60122     +0.00%
+PRESSURE_BIAS_SCALE            0.26035     0.26035     +0.00%
+BREAKOUT_QUOTE_TIGHTEN         0.12914     0.12914     +0.00%
+BREAKOUT_HOLD_BONUS            0.07008     0.07008     +0.00%
+
+Generation History
+------------------
+ Gen      Gen Obj      Gen Avg     Best Obj     Best Avg    Sigma
+   1     14941.95     14942.00     14942.00     14942.00  0.05285
+   2     14941.87     14942.00     14942.00     14942.00  0.04811
+   3     14941.83     14942.00     14942.00     14942.00  0.04355
+   4     14941.84     14942.00     14942.00     14942.00  0.04045
+   5     14941.71     14942.00     14942.00     14942.00  0.04005
